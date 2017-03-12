@@ -12,6 +12,27 @@ from treemap.instance import Instance
 from treemap.models import Tree, Plot, User, Species
 from treemap.lib.geo_tools import ProjectionConverter
 
+def parse_species_name(species_input):
+    ''' "Picea abies 'Viminalis'" '''
+    ''' [Picea, abies, Viminalis ]'''
+    ''' "Crataegus x media 'Paul's Scarlet'" '''
+    '''[Crataegus, x media, Paul's Scarlet] '''
+    genus = None
+    species = None
+    cultivar = None
+    gatunek_kultywar = species_input.split('\'')
+    gatunek = gatunek_kultywar[0]    
+    print gatunek
+    if len(gatunek_kultywar) >=2:
+        kultywar = gatunek_kultywar[1]
+    gatunek_split = gatunek.split()
+    genus = gatunek_split[0]
+    if len(gatunek_split)>=2:
+        if gatunek_split[1] =='x':
+            gatunek_split[1]=gatunek_split[1]+' '+gatunek_split[2]
+        species = gatunek_split[1]    
+    return [genus,species,cultivar]
+
 
 class Command(BaseCommand):
     
@@ -32,7 +53,12 @@ class Command(BaseCommand):
         species = Species.objects.filter(common_name=properties['gatunek'], instance=instance)
         if not species.exists():
             # TODO additional logic here
-            raise
+            [genus,species,cultivar] = parse_species_name(properties['gatunek_1'])
+            specie = Species(common_name=properties['gatunek'],
+                             genus = genus,
+                             species = species,
+                             cultivar = cultivar)
+#            raise
         else:
             return species.last()
 

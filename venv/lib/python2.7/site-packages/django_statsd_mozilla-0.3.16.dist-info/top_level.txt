@@ -1,0 +1,6 @@
+django_statsd
+django_statsd/clients
+django_statsd/loggers
+django_statsd/management
+django_statsd/management/commands
+django_statsd/patches
