@@ -22,13 +22,14 @@ def parse_species_name(species_input):
     cultivar = None
     gatunek_kultywar = species_input.split('\'')
     gatunek = gatunek_kultywar[0]    
-    if len(gatunek_kultywar) >= 2:
+    print gatunek
+    if len(gatunek_kultywar) >=2:
         kultywar = gatunek_kultywar[1]
     gatunek_split = gatunek.split()
     genus = gatunek_split[0]
-    if len(gatunek_split) >= 2:
+    if len(gatunek_split)>=2:
         if gatunek_split[1] =='x':
-            gatunek_split[1] = gatunek_split[1] + ' ' + gatunek_split[2]
+            gatunek_split[1]=gatunek_split[1]+' '+gatunek_split[2]
         species = gatunek_split[1]    
     return [genus,species,cultivar]
 
@@ -48,16 +49,15 @@ class Command(BaseCommand):
         else:
             self.stdout.write(self.style.ERROR('No such file!'))
 
-    def get_or_create_species(self, properties, instance, admin):
+    def get_or_create_species(self, properties, instance):
         species = Species.objects.filter(common_name=properties['gatunek'], instance=instance)
         if not species.exists():
             # TODO additional logic here
-            genus, species, cultivar = parse_species_name(properties['gatunek_1'])
+            [genus,species,cultivar] = parse_species_name(properties['gatunek_1'])
             specie = Species(common_name=properties['gatunek'],
                              genus = genus,
                              species = species,
                              cultivar = cultivar)
-            specie.save_with_user(admin)
 #            raise
         else:
             return species.last()
@@ -101,7 +101,7 @@ class Command(BaseCommand):
                 plot_geom = Point(lon_webm, lat_webm, srid=3857)
 
                 plot = self.get_or_create_plot(tree, instance, plot_geom, admin)
-                species = self.get_or_create_species(tree['properties'], instance, admin)
+                species = self.get_or_create_species(tree['properties'], instance)
                 
                 # TODO;
                 # wysokosc  = float(properties['wysokosc'].replace(',','.'))
