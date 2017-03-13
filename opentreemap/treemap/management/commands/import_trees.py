@@ -33,6 +33,31 @@ def parse_species_name(species_input):
         species = gatunek_split[1]    
     return [genus,species,cultivar]
 
+def gen_code(genus, species, cultivar,codes):
+    GE = genus[:2].upper()
+    if species==None: SP = ''
+    else:
+        SP = species[:2].upper()
+    if SP=='X ':
+        SP = species[2:4].upper()
+    CU=''
+    if cultivar!=None:
+        for word in cultivar.split():
+            CU+=word[0]
+        if cultivar.startswith('var. '): 
+            CU = CU[1:]
+    if CU!='':
+        CU='_'+CU
+    code = GE + SP + CU
+    output_names = [name for name in codes if (name.startswith(code))]
+    if output_names:
+        max_no=0
+        for name in output_names:
+            no=int(''.join([i for i in name if i in range(10))
+    if code in codes:
+        code = code + str(max_no+1)
+        codes.add(code)
+    return code
 
 class Command(BaseCommand):
     
@@ -48,16 +73,19 @@ class Command(BaseCommand):
             self.import_trees_from_geojson(options['filename'])
         else:
             self.stdout.write(self.style.ERROR('No such file!'))
-
+    #check
     def get_or_create_species(self, properties, instance):
         species = Species.objects.filter(common_name=properties['gatunek'], instance=instance)
+        codes = Species.objects.values_list('otm_code')
         if not species.exists():
+            otm_code = gen_code(genus, species, cultivar,codes)
             # TODO additional logic here
             [genus,species,cultivar] = parse_species_name(properties['gatunek_1'])
-            specie = Species(common_name=properties['gatunek'],
-                             genus = genus,
-                             species = species,
-                             cultivar = cultivar)
+            specie = Species(otm_code=otm_code
+                             common_name=properties['gatunek'],
+                             genus=genus,
+                             species=species,
+                             cultivar=cultivar)
 #            raise
         else:
             return species.last()
