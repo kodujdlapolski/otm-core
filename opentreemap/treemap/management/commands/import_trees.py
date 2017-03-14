@@ -1,6 +1,7 @@
 # coding: utf-8
 
 import os
+import re
 import json
 
 from django.db import transaction
@@ -29,37 +30,52 @@ class Command(BaseCommand):
         else:
             self.stdout.write(self.style.ERROR('No such file!'))
 
+    def generate_species_code(self, genus, species, cultivar):
+        """
+        OpenTreeMap is using american USDA codes, but we'll need to generate our own ones.
+        """
+        if cultivar:
+            code = u"%s%s%s" % (genus[0], species[0], cultivar[0])
+        else:
+            code = u"%s%s" % (genus[0], species[0])
+
+        code = code.upper()
+
+        added_code = Species.objects.filter(otm_code=code).order_by('otm_code')
+        if added_code.exists():
+            code = u"%s%s" % (added_code, "1")
+
+        return code
+
     def parse_species_name(self, species_input):
-        ''' "Picea abies 'Viminalis'" '''
-        ''' :return: "Picea", "abies", "Viminalis"'''
+        """
+        Extract genus, species and cultivar names from string.
+        """
+        genus = species_input.split(" ")[0]
+        species = species_input
+        cultivar = ""
 
-        genus = None
-        species = None
-        cultivar = None
-        species_cultivar = species_input.split('\'')
-        gatunek = species_cultivar[0]
+        cultivar_match = re.match(r"'([A-Za-z_\./\\-]*)'", species_input)
+        if cultivar_match:
+            species = species_input.split("'")[0]
+            cultivar = cultivar_match.group().replace("'", "")
 
-        if len(species_cultivar) >= 2:
-            cultivar = species_cultivar[1]
-        gatunek_split = gatunek.split()
-        genus = gatunek_split[0]
-
-        if len(gatunek_split) >= 2:
-            if gatunek_split[1] == 'x':
-                gatunek_split[1] = gatunek_split[1] + ' ' + gatunek_split[2]
-            species = gatunek_split[1]
         return genus, species, cultivar
 
     def get_or_create_species(self, properties, instance, admin):
         species = Species.objects.filter(common_name=properties['gatunek'], instance=instance)
         if not species.exists():
-            genus, species, cultivar = self.parse_species_name(properties['gatunek_1'])
-            species = Species(common_name=properties['gatunek'],
-                              genus=genus,
-                              species=species,
-                              instance=instance)
-            species.cultivar = cultivar or ''
+            genus, _species, cultivar = self.parse_species_name(properties['gatunek_1'])
+            otm_code = self.generate_species_code(genus, _species, cultivar)
+            species = Species(
+                common_name=properties['gatunek'],
+                genus=genus,
+                species=species,
+                instance=instance,
+                otm_code=otm_code
+            )
             species.save_with_user(admin)
+
         else:
             return species.last()
 
@@ -106,6 +122,10 @@ class Command(BaseCommand):
                     species = self.get_or_create_species(tree['properties'], instance, admin)
                     height = float(tree['properties']['wysokosc'].replace(',','.'))
                     diameter = float(tree['properties']['srednica_k'].replace(',','.'))
+
+                    # Default values if original are unknown.
+                    height = height or 10.0
+                    diameter = diameter or 1.0
 
                     tree = Tree.objects.filter(plot=plot, instance=instance, species=species)
 
