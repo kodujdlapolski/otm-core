@@ -1221,7 +1221,7 @@ msgstr "Wyloguj się"
 #: treemap/templates/base.html:107 treemap/templates/base.html.py:116
 #: treemap/templates/registration/login.html:5
 msgid "Login"
-msgstr "Login"
+msgstr "Zaloguj się"
 
 #: treemap/templates/base.html:109 treemap/templates/base.html.py:118
 #: treemap/templates/instance_base.html:89
@@ -1541,15 +1541,9 @@ msgstr "Wyślij"
 msgid "Reset your tree map password"
 msgstr "Zmień hasło"
 
-<<<<<<< HEAD
 #: treemap/templates/registration/registration_closed.html:7
 msgid "Registration is currently closed."
 msgstr "Rejestracja chwilowo niedostępna."
-=======
-#: templates/registration/logout.html:8
-msgid "Logged out"
-msgstr "Wylogowany"
->>>>>>> c9a263b... Removed duplicate items from translations.
 
 #: treemap/templates/registration/registration_complete.html:7
 msgid "Account created!"
@@ -1637,7 +1631,6 @@ msgstr "Przypomnij login"
 
 #: treemap/templates/treemap/forgot_username.html:8
 msgid ""
-<<<<<<< HEAD
 "Forgot the username for your tree map account? Enter your email address and "
 "click \\"
 msgstr "Zapomniałeś swój login? Wpisz swój email i kliknij \\"
@@ -1645,21 +1638,6 @@ msgstr "Zapomniałeś swój login? Wpisz swój email i kliknij \\"
 #: treemap/templates/treemap/forgot_username.html:12
 msgid "Email Address"
 msgstr "Email"
-=======
-"\n"
-"    %(tree_count)s</span> tree,\n"
-"  "
-msgid_plural ""
-"\n"
-"    %(tree_count)s</span> trees,\n"
-"  "
-msgstr[0] ""
-"\n"
-"    %(tree_count)s</span> drzewo,"
-msgstr[1] ""
-"\n"
-"    %(tree_count)s</span> drzew,"
->>>>>>> c9a263b... Removed duplicate items from translations.
 
 #: treemap/templates/treemap/forgot_username_done.html:7
 msgid "Email Sent"
@@ -1675,14 +1653,9 @@ msgid ""
 "    "
 msgstr ""
 "\n"
-<<<<<<< HEAD
 "    <p>Wiadomość została wysłana na adres %(email)s.</p>\n"
 "    <p>Sprawdź swoją skrzynkę email aby odzyskać login. Jeśli w ciągu 15 "
 "minut nie otrzymasz wiadomości, sprawdź także folder kosz lub spam.</p>"
-=======
-"    %(plot_count)s</span> miejsca nasadzeń\n"
-"  "
->>>>>>> c9a263b... Removed duplicate items from translations.
 
 #: treemap/templates/treemap/instance_not_available.html:17
 msgid "The map you requested is not available to all users."
@@ -1940,7 +1913,6 @@ msgstr "numer"
 msgid "Ecosystem Services"
 msgstr ""
 
-<<<<<<< HEAD
 #: treemap/templates/treemap/unsupported.html:19
 msgid "OpenTreeMap currently requires Internet Explorer version 10 or higher."
 msgstr ""
@@ -2377,7 +2349,3 @@ msgstr ""
 #: treemap/templates/treemap/partials/step_set_location.html:4
 msgid "Set the location of tree"
 msgstr "Wybierz lokalizację drzewa"
-=======
-msgid "Instance:"
-msgstr "Instancja:"
->>>>>>> c9a263b... Removed duplicate items from translations.
