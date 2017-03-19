@@ -146,7 +146,7 @@ class InstanceMobileSearch(OTMTestCase):
         }
         self.assert_search_present(
             standard={
-                'label': 'Planting Site Choice',
+                'label': 'Miejsce nasadzenia drzew Choice',
                 'identifier': 'plot.udf:Choice',
                 'search_type': 'CHOICE',
                 'choices': [{'display_value': 'a', 'value': 'a'},
