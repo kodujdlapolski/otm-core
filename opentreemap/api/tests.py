@@ -1213,7 +1213,7 @@ class Instance(LocalMediaTestCase):
         response = instance_info_endpoint(request, 3, self.instance.url_name)
         info_dict = json.loads(response.content)
 
-        self.assertIn({'header': 'Stewardship',
+        self.assertIn({'header': u'Zarządca/Rodzaj własności',
                        'collection_udf_keys': ['plot.udf:Stewardship',
                                                'tree.udf:Stewardship'],
                        'sort_key': 'Date'},
