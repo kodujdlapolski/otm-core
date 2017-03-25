@@ -275,6 +275,8 @@ TEMPLATE_CONTEXT_PROCESSORS = (
     'django.contrib.messages.context_processors.messages',
     'django.core.context_processors.request',
     'opentreemap.context_processors.global_settings',
+    'social_django.context_processors.backends',
+    'social_django.context_processors.login_redirect',
 )
 
 COMMENTS_APP = 'otm_comments'
@@ -319,6 +321,7 @@ UNMANAGED_APPS = (
     'url_tools',
     'django_js_reverse',
     'webpack_loader',
+    'social_django',
 )
 
 I18N_APPS = (
@@ -426,3 +429,31 @@ WEBPACK_LOADER = {
                                    'webpack-stats.json')
     }
 }
+
+AUTHENTICATION_BACKENDS = (
+    'social_core.backends.github.GithubOAuth2',
+    'social_core.backends.twitter.TwitterOAuth',
+    'social_core.backends.facebook.FacebookOAuth2',
+    'django.contrib.auth.backends.ModelBackend',
+)
+
+SOCIAL_AUTH_FACEBOOK_KEY = 'ADD KEY HERE!'
+SOCIAL_AUTH_FACEBOOK_SECRET = 'ADD SECRET HERE!'
+
+FACEBOOK_SOCIAL_AUTH_RAISE_EXCEPTIONS = True
+SOCIAL_AUTH_RAISE_EXCEPTIONS = True
+RAISE_EXCEPTIONS = True
+DEBUG = True
+
+SOCIAL_AUTH_PIPELINE = (
+    'social_core.pipeline.social_auth.social_details',
+    'social_core.pipeline.social_auth.social_uid',
+    'social_core.pipeline.social_auth.auth_allowed',
+    'social_core.pipeline.social_auth.social_user',
+    'social_core.pipeline.user.get_username',
+    'social_core.pipeline.social_auth.associate_by_email',
+    'social_core.pipeline.user.create_user',
+    'social_core.pipeline.social_auth.associate_user',
+    'social_core.pipeline.social_auth.load_extra_data',
+    'social_core.pipeline.user.user_details'
+)

@@ -30,6 +30,7 @@ instance_pattern = r'^(?P<instance_url_name>' + URL_NAME_PATTERN + r')'
 
 urlpatterns = patterns(
     '',
+    url(r'^oauth/', include('social_django.urls', namespace='social')),
     (r'^robots.txt$', RedirectView.as_view(
         url='/static/robots.txt', permanent=True)),
     # Setting permanent=False in case we want to allow customizing favicons

@@ -10,7 +10,7 @@ from views import RegistrationView, ActivationView, LoginForm
 urlpatterns = patterns('',
     url(r'^login/?$',
         'django.contrib.auth.views.login',
-        {'authentication_form': LoginForm}),
+        {'authentication_form': LoginForm}, name='login'),
     url(r'^activation-complete/$',
        TemplateView.as_view(template_name='registration/activation_complete.html'),  # NOQA
        name='registration_activation_complete'),
