@@ -43,7 +43,7 @@ class Command(BaseCommand):
 
         added_code = Species.objects.filter(otm_code=code).order_by('otm_code')
         if added_code.exists():
-            code = u"%s%s" % (added_code, "1")
+            code = u"%s%s" % (added_code.last().otm_code, "1")
 
         return code
 
