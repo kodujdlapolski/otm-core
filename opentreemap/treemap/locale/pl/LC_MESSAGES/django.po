@@ -667,6 +667,14 @@ msgstr "Wyloguj się"
 msgid "Login"
 msgstr "Zaloguj się"
 
+#: opentreemap/treemap/templates/registration/login.html:47
+msgid "Login with Facebook"
+msgstr "Zaloguj się przez Facebooka"
+
+#: opentreemap/treemap/templates/registration/login.html:51
+msgid "Login with Google"
+msgstr "Zaloguj się przez Google"
+
 #: opentreemap/treemap/templates/base.html:115
 #: opentreemap/treemap/templates/base.html:124
 #: opentreemap/treemap/templates/instance_base.html:94
@@ -796,7 +804,7 @@ msgstr ""
 
 #: opentreemap/treemap/templates/registration/activation_email_subject.txt:1
 msgid "Activate your tree map account"
-msgstr "Aktywuj konto przez"
+msgstr "Aktywuj konto"
 
 #: opentreemap/treemap/templates/registration/login.html:14
 msgid "Log in to OpenTreeMap"
@@ -804,7 +812,7 @@ msgstr ""
 
 #: opentreemap/treemap/templates/registration/login.html:26
 msgid "Recover my username"
-msgstr ""
+msgstr "Przypomnij mi moją nazwę użytkownika"
 
 #: opentreemap/treemap/templates/registration/login.html:31
 msgid "Reset my password"
@@ -818,6 +826,14 @@ msgstr "Masz już konto?"
 #: opentreemap/treemap/templates/registration/registration_form.html:5
 msgid "Register"
 msgstr "Zarejestruj się"
+
+#: opentreemap/treemap/templates/registration/registration_form.html:30
+msgid "Fields marked with an asterisk (*) are required."
+msgstr "Pola oznaczone gwiazdką (*) są wymagane."
+
+#: opentreemap/treemap/templates/registration/registration_form.html:38
+msgid "Additional Information"
+msgstr "Informacje dodatkowe"
 
 #: opentreemap/treemap/templates/registration/password_change_done.html:5
 msgid "Password changed"
@@ -880,18 +896,18 @@ msgstr ""
 
 #: opentreemap/treemap/templates/registration/password_reset_form.html:8
 msgid "Reset your Password"
-msgstr ""
+msgstr "Zresetuj hasło"
 
 #: opentreemap/treemap/templates/registration/password_reset_form.html:9
 msgid ""
 "Forgot the password for your tree map account? Enter your email address and "
 "click \\"
-msgstr ""
+msgstr "Nie pamiętasz swojego hasła? Wpisz swój email i kliknij"
 
 #: opentreemap/treemap/templates/registration/password_reset_form.html:14
 #: opentreemap/treemap/templates/treemap/forgot_username.html:19
 msgid "Send"
-msgstr ""
+msgstr "Wyślij"
 
 #: opentreemap/treemap/templates/registration/password_reset_subject.txt:1
 msgid "Reset your tree map password"
@@ -921,7 +937,7 @@ msgstr "Masz już konto?"
 
 #: opentreemap/treemap/templates/registration/registration_form.html:42
 msgid "Create Account"
-msgstr "Aktywuj konto przez"
+msgstr "Stwórz konto"
 
 #: opentreemap/treemap/templates/treemap/edits.html:7
 #: opentreemap/treemap/templates/treemap/edits.html:34
@@ -1008,11 +1024,11 @@ msgstr "Nazwa potoczna"
 
 #: opentreemap/treemap/templates/treemap/field/species_tr.html:9
 msgid "Scientific Name"
-msgstr "Naukowa nazwa"
+msgstr "Nazwa naukowa"
 
 #: opentreemap/treemap/templates/treemap/field/species_typeahead.html:26
 msgid "Need help identifying the tree's species?"
-msgstr ""
+msgstr "Potrzebujesz pomocy przy identyfikacji gatunku?"
 
 #: opentreemap/treemap/templates/treemap/field/tree_id_tr.html:6
 msgid "Tree Number"
@@ -1020,17 +1036,18 @@ msgstr "Numer drzewa"
 
 #: opentreemap/treemap/templates/treemap/forgot_username.html:7
 msgid "Retrieve your Username"
-msgstr ""
+msgstr "Przypomnij mi nazwę użytkownika"
 
 #: opentreemap/treemap/templates/treemap/forgot_username.html:8
 msgid ""
 "Forgot the username for your tree map account? Enter your email address and "
 "click \\"
-msgstr ""
+msgstr "Nie pamiętasz nazwy użytkownika Twojego konta? Wprowadź Twój adres email "
+"i kliknij \\"
 
 #: opentreemap/treemap/templates/treemap/forgot_username.html:12
 msgid "Email Address"
-msgstr "Najbliższy adres:"
+msgstr "Adres email:"
 
 #: opentreemap/treemap/templates/treemap/forgot_username_done.html:7
 msgid "Email Sent"
@@ -2268,3 +2285,4 @@ msgstr ""
 # nie wiem co to dokładnie znaczy
 #~ msgid "Instance:"
 #~ msgstr "Przykład:"
+
