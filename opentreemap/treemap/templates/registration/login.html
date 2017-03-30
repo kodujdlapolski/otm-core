@@ -42,10 +42,18 @@
     </form>
   </div>
   <div class="well login-signup-panel">
-  <span class="fa fa-twitter"></span>
+  <span class="fa fa-facebook"></span>
     <a class="btn btn-block btn-social btn-facebook" href="{% url 'social:begin' 'facebook' %}">
         <span class="fa fa-facebook"></span>
         {% trans "Login with Facebook"%}
+    </a>
+    <a class="btn btn-block btn-social btn-twitter" href="{% url 'social:begin' 'twitter' %}">
+        <span class="fa fa-twitter"></span>
+        {% trans "Login with Twitter"%}
+    </a>
+    <a class="btn btn-block btn-social btn-google" href="{% url 'social:begin' 'google-oauth2' %}">
+        <span class="fa fa-google"></span>
+        {% trans "Login with Google"%}
     </a>
   </div>
   <div class="well login-signup-panel signup-option">
