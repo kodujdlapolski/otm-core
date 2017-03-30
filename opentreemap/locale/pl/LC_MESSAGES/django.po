@@ -1627,13 +1627,13 @@ msgstr "Następna"
 
 #: treemap/templates/treemap/forgot_username.html:7
 msgid "Retrieve your Username"
-msgstr "Przypomnij login"
+msgstr "Przypomnij mi mój login"
 
-#: treemap/templates/treemap/forgot_username.html:8
 msgid ""
-"Forgot the username for your tree map account? Enter your email address and "
-"click \\"
-msgstr "Zapomniałeś swój login? Wpisz swój email i kliknij \\"
+"Forgot the username for your tree map account? Enter your email address "
+"and click \\"
+msgstr "Nie pamiętasz nazwy użytkownika Twojego konta? Wprowadź Twój adres email "
+"i kliknij \\"
 
 #: treemap/templates/treemap/forgot_username.html:12
 msgid "Email Address"

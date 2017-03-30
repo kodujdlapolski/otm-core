@@ -1455,6 +1455,14 @@ msgstr "Nie masz konta?"
 msgid "Register"
 msgstr "Załóż konto"
 
+#: opentreemap/treemap/templates/registration/registration_form.html:30
+msgid "Fields marked with an asterisk (*) are required."
+msgstr "Pola oznaczone gwiazdką (*) są wymagane."
+
+#: opentreemap/treemap/templates/registration/registration_form.html:38
+msgid "Additional Information"
+msgstr "Informacje dodatkowe"
+
 #: treemap/templates/registration/password_change_done.html:5
 msgid "Password changed"
 msgstr "Hasło zostało zmienione"
@@ -1627,7 +1635,7 @@ msgstr "Następna"
 
 #: treemap/templates/treemap/forgot_username.html:7
 msgid "Retrieve your Username"
-msgstr "Przypomnij login"
+msgstr "Przypomnij mi login"
 
 #: treemap/templates/treemap/forgot_username.html:8
 msgid ""
@@ -1794,6 +1802,14 @@ msgstr "lub"
 #: treemap/templates/treemap/map_feature_detail.html:192
 msgid "log in"
 msgstr "zaloguj się"
+
+#: opentreemap/treemap/templates/registration/login.html:47
+msgid "Login with Facebook"
+msgstr "Zaloguj się przez Facebooka"
+
+#: opentreemap/treemap/templates/registration/login.html:51
+msgid "Login with Google"
+msgstr "Zaloguj się przez Google"
 
 #: treemap/templates/treemap/map_feature_detail.html:193
 msgid "to add comments"
