@@ -9,7 +9,7 @@ from django.views.generic import RedirectView
 from django.contrib import admin
 
 from treemap import routes
-from treemap.instance import URL_NAME_PATTERN
+from treemap.instance import Instance, URL_NAME_PATTERN
 from treemap.urls import USERNAME_PATTERN
 from treemap.ecobenefits import within_itree_regions_view
 
@@ -18,6 +18,7 @@ from registration_backend.views import RegistrationView
 
 admin.autodiscover()
 instance_pattern = r'^(?P<instance_url_name>' + URL_NAME_PATTERN + r')'
+landing_page_instance = settings.LANDING_PAGE_DEFAULT_INSTANCE or Instance.objects.all().order_by('pk').first().name
 
 
 # Testing notes:
@@ -38,8 +39,7 @@ urlpatterns = patterns(
     url('^comments/', include('django_comments.urls')),
     url(r'^', include('geocode.urls')),
     url(r'^stormwater/', include('stormwater.urls')),
-    # Default hardcoded front site. #TODO: PG make this more pretty.
-    url(r'^$', RedirectView.as_view(url='/%s/map/' % settings.LANDING_PAGE_DEFAULT_INSTANCE)),
+    url(r'^$', RedirectView.as_view(url='/%s/map/' % landing_page_instance)),
     # url(r'^$', routes.landing_page),
     url(r'^config/settings.js$', routes.root_settings_js),
     url(r'^users/%s/$' % USERNAME_PATTERN,
@@ -53,7 +53,7 @@ urlpatterns = patterns(
     # the page of the currently logged in user
     url(r'^accounts/profile/$', routes.profile_to_user_page, name='profile'),
     url(r'^accounts/logout/$', 'django.contrib.auth.views.logout',
-        {'next_page': '/warszawa/map/'}), #TODO: PG make this more pretty
+        {'next_page': '/%s/map/' % landing_page_instance}),
     url(r'^accounts/forgot-username/$', routes.forgot_username,
         name='forgot_username'),
     url(r'^accounts/', include('registration_backend.urls')),

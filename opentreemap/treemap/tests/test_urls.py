@@ -307,7 +307,7 @@ class TreemapPrivateUrlTests(UrlTestCase):
 
     def test_instance(self):
         desired_path = self.prefix + 'map/'
-        expected_path = '/accounts/login/?next=' + desired_path
+        expected_path = '/accounts/login?next=' + desired_path
         self.assert_redirects(desired_path, expected_path, 302)
 
     def test_embed(self):

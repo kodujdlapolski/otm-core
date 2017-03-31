@@ -214,7 +214,7 @@ SECRET_KEY = 'secret key'
 
 # List of callables that know how to import templates from various sources.
 TEMPLATE_LOADERS = (
-    #'django.template.loaders.filesystem.Loader',
+    # 'django.template.loaders.filesystem.Loader',
     'django.template.loaders.app_directories.Loader',
     'apptemplates.Loader'
 )
@@ -369,18 +369,18 @@ STORAGE_UNITS = {
 }
 DISPLAY_DEFAULTS = {
     'plot': {
-        'width':  {'units': 'in', 'digits': 1},
+        'width': {'units': 'in', 'digits': 1},
         'length': {'units': 'in', 'digits': 1},
     },
     'tree': {
-        'diameter':      {'units': 'in', 'digits': 1},
-        'height':        {'units': 'ft', 'digits': 1},
+        'diameter': {'units': 'in', 'digits': 1},
+        'height': {'units': 'ft', 'digits': 1},
         'canopy_height': {'units': 'ft', 'digits': 1}
     },
     'eco': {
-        'energy':     {'units': 'kwh/year', 'digits': 1},
+        'energy': {'units': 'kwh/year', 'digits': 1},
         'stormwater': {'units': 'gal/year', 'digits': 1},
-        'co2':        {'units': 'lbs/year', 'digits': 1},
+        'co2': {'units': 'lbs/year', 'digits': 1},
         'co2storage': {'units': 'lbs', 'digits': 1},
         'airquality': {'units': 'lbs/year', 'digits': 1}
     },
@@ -395,7 +395,7 @@ DISPLAY_DEFAULTS = {
     },
     'greenInfrastructure': {
         'rainfall': {'units': 'in', 'digits': 1},
-        'area':     {'units': 'sq_ft', 'digits': 1}
+        'area': {'units': 'sq_ft', 'digits': 1}
     }
 }
 
@@ -432,11 +432,13 @@ WEBPACK_LOADER = {
 }
 
 AUTHENTICATION_BACKENDS = (
+    'django.contrib.auth.backends.ModelBackend',
     'social_core.backends.github.GithubOAuth2',
     'social_core.backends.google.GoogleOAuth2',
     'social_core.backends.facebook.FacebookOAuth2',
-    'django.contrib.auth.backends.ModelBackend',
 )
+
+LANDING_PAGE_DEFAULT_INSTANCE = ''
 
 # Settings for the social-auth-app-django.
 FACEBOOK_SOCIAL_AUTH_RAISE_EXCEPTIONS = True
