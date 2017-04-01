@@ -214,7 +214,7 @@ SECRET_KEY = 'secret key'
 
 # List of callables that know how to import templates from various sources.
 TEMPLATE_LOADERS = (
-    #'django.template.loaders.filesystem.Loader',
+    # 'django.template.loaders.filesystem.Loader',
     'django.template.loaders.app_directories.Loader',
     'apptemplates.Loader'
 )
@@ -227,6 +227,7 @@ MIDDLEWARE_CLASSES = (
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'opentreemap.middleware.InternetExplorerRedirectMiddleware',
+    'social_django.middleware.SocialAuthExceptionMiddleware',
     # Uncomment the next line for simple clickjacking protection:
     # 'django.middleware.clickjacking.XFrameOptionsMiddleware',
 )
@@ -275,6 +276,8 @@ TEMPLATE_CONTEXT_PROCESSORS = (
     'django.contrib.messages.context_processors.messages',
     'django.core.context_processors.request',
     'opentreemap.context_processors.global_settings',
+    'social_django.context_processors.backends',
+    'social_django.context_processors.login_redirect',
 )
 
 COMMENTS_APP = 'otm_comments'
@@ -319,6 +322,7 @@ UNMANAGED_APPS = (
     'url_tools',
     'django_js_reverse',
     'webpack_loader',
+    'social_django',
 )
 
 I18N_APPS = (
@@ -365,18 +369,18 @@ STORAGE_UNITS = {
 }
 DISPLAY_DEFAULTS = {
     'plot': {
-        'width':  {'units': 'in', 'digits': 1},
+        'width': {'units': 'in', 'digits': 1},
         'length': {'units': 'in', 'digits': 1},
     },
     'tree': {
-        'diameter':      {'units': 'in', 'digits': 1},
-        'height':        {'units': 'ft', 'digits': 1},
+        'diameter': {'units': 'in', 'digits': 1},
+        'height': {'units': 'ft', 'digits': 1},
         'canopy_height': {'units': 'ft', 'digits': 1}
     },
     'eco': {
-        'energy':     {'units': 'kwh/year', 'digits': 1},
+        'energy': {'units': 'kwh/year', 'digits': 1},
         'stormwater': {'units': 'gal/year', 'digits': 1},
-        'co2':        {'units': 'lbs/year', 'digits': 1},
+        'co2': {'units': 'lbs/year', 'digits': 1},
         'co2storage': {'units': 'lbs', 'digits': 1},
         'airquality': {'units': 'lbs/year', 'digits': 1}
     },
@@ -391,7 +395,7 @@ DISPLAY_DEFAULTS = {
     },
     'greenInfrastructure': {
         'rainfall': {'units': 'in', 'digits': 1},
-        'area':     {'units': 'sq_ft', 'digits': 1}
+        'area': {'units': 'sq_ft', 'digits': 1}
     }
 }
 
@@ -426,3 +430,38 @@ WEBPACK_LOADER = {
                                    'webpack-stats.json')
     }
 }
+
+AUTHENTICATION_BACKENDS = (
+    'django.contrib.auth.backends.ModelBackend',
+    'social_core.backends.github.GithubOAuth2',
+    'social_core.backends.google.GoogleOAuth2',
+    'social_core.backends.facebook.FacebookOAuth2',
+)
+
+LANDING_PAGE_DEFAULT_INSTANCE = ''
+
+# Settings for the social-auth-app-django.
+FACEBOOK_SOCIAL_AUTH_RAISE_EXCEPTIONS = True
+SOCIAL_AUTH_RAISE_EXCEPTIONS = True
+RAISE_EXCEPTIONS = True
+
+SOCIAL_AUTH_FACEBOOK_SCOPE = ['email']
+SOCIAL_AUTH_FACEBOOK_API_VERSION = '2.8'
+
+SOCIAL_AUTH_FACEBOOK_PROFILE_EXTRA_PARAMS = {
+    'locale': 'pl',
+    'fields': 'id, name, email, age_range'
+}
+
+LOGIN_URL = 'login'
+LOGOUT_URL = 'logout'
+LOGIN_REDIRECT_URL = '/'
+
+SOCIAL_AUTH_FACEBOOK_KEY = ''
+SOCIAL_AUTH_FACEBOOK_SECRET = ''
+
+SOCIAL_AUTH_TWITTER_KEY = ''
+SOCIAL_AUTH_TWITTER_SECRET = ''
+
+SOCIAL_AUTH_GOOGLE_OAUTH2_KEY = ''
+SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET = ''

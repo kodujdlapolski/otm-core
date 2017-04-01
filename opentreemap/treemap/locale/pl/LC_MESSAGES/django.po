@@ -1223,10 +1223,19 @@ msgstr "Wyloguj się"
 msgid "Login"
 msgstr "Zaloguj się"
 
-#: treemap/templates/base.html:109 treemap/templates/base.html.py:118
-#: treemap/templates/instance_base.html:89
-#: treemap/templates/instance_base.html:94
-#: treemap/templates/treemap/map_feature_detail.html:191
+#: opentreemap/treemap/templates/registration/login.html:47
+msgid "Login with Facebook"
+msgstr "Zaloguj się przez Facebooka"
+
+#: opentreemap/treemap/templates/registration/login.html:51
+msgid "Login with Google"
+msgstr "Zaloguj się przez Google"
+
+#: opentreemap/treemap/templates/base.html:115
+#: opentreemap/treemap/templates/base.html:124
+#: opentreemap/treemap/templates/instance_base.html:94
+#: opentreemap/treemap/templates/instance_base.html:99
+#: opentreemap/treemap/templates/treemap/partials/map_feature_detail_base.html:138
 msgid "Sign Up"
 msgstr "Załóż konto"
 
@@ -1440,7 +1449,7 @@ msgstr "Zaloguj się do Otwartej Mapy Drzew"
 
 #: treemap/templates/registration/login.html:25
 msgid "Recover my username"
-msgstr "Przypomnij mój login"
+msgstr "Przypomnij mi moją nazwę użytkownika"
 
 #: treemap/templates/registration/login.html:30
 msgid "Reset my password"
@@ -1454,6 +1463,14 @@ msgstr "Nie masz konta?"
 #: treemap/templates/registration/registration_form.html:4
 msgid "Register"
 msgstr "Załóż konto"
+
+#: opentreemap/treemap/templates/registration/registration_form.html:30
+msgid "Fields marked with an asterisk (*) are required."
+msgstr "Pola oznaczone gwiazdką (*) są wymagane."
+
+#: opentreemap/treemap/templates/registration/registration_form.html:38
+msgid "Additional Information"
+msgstr "Informacje dodatkowe"
 
 #: treemap/templates/registration/password_change_done.html:5
 msgid "Password changed"
@@ -1522,15 +1539,13 @@ msgstr ""
 
 #: treemap/templates/registration/password_reset_form.html:7
 msgid "Reset your Password"
-msgstr "Zmień hasło"
+msgstr "Zresetuj hasło"
 
 #: treemap/templates/registration/password_reset_form.html:8
 msgid ""
 "Forgot the password for your tree map account? Enter your email address and "
 "click \\"
-msgstr ""
-"Zapomniałeś hasła do Otwartej Mapy Drzew? Wprowadź swój email i przejdź "
-"dalej \\"
+msgstr "Nie pamiętasz swojego hasła? Wpisz swój email i kliknij"
 
 #: treemap/templates/registration/password_reset_form.html:13
 #: treemap/templates/treemap/forgot_username.html:19
@@ -1565,7 +1580,7 @@ msgstr "Mam już konto"
 
 #: treemap/templates/registration/registration_form.html:41
 msgid "Create Account"
-msgstr "Załóż konto"
+msgstr "Stwórz konto"
 
 #: treemap/templates/treemap/edits.html:7
 #: treemap/templates/treemap/edits.html:34
@@ -1623,21 +1638,46 @@ msgstr "Poprzednia"
 #: treemap/templates/treemap/edits.html:170
 #: treemap/templates/treemap/recent_user_edits.html:45
 msgid "Next"
-msgstr "Następna"
+msgstr "Następne"
+
+#: opentreemap/treemap/templates/treemap/field/resource_tree.html:6
+msgid "No diameter"
+msgstr "Średnica pnia"
+
+#: opentreemap/treemap/templates/treemap/field/search.html:37
+msgid "Disabled while a search for this field is active"
+msgstr ""
+
+#: opentreemap/treemap/templates/treemap/field/search.html:41
+msgid "Disabled while a missing search for this field is active."
+msgstr ""
+
+#: opentreemap/treemap/templates/treemap/field/species_tr.html:9
+msgid "Scientific Name"
+msgstr "Nazwa naukowa"
+
+#: opentreemap/treemap/templates/treemap/field/species_typeahead.html:26
+msgid "Need help identifying the tree's species?"
+msgstr "Potrzebujesz pomocy przy identyfikacji gatunku?"
+
+#: opentreemap/treemap/templates/treemap/field/tree_id_tr.html:6
+msgid "Tree Number"
+msgstr "Numer drzewa"
 
 #: treemap/templates/treemap/forgot_username.html:7
 msgid "Retrieve your Username"
-msgstr "Przypomnij login"
+msgstr "Przypomnij mi nazwę użytkownika"
 
 #: treemap/templates/treemap/forgot_username.html:8
 msgid ""
 "Forgot the username for your tree map account? Enter your email address and "
 "click \\"
-msgstr "Zapomniałeś swój login? Wpisz swój email i kliknij \\"
+msgstr "Nie pamiętasz nazwy użytkownika Twojego konta? Wprowadź Twój adres email "
+"i kliknij \\"
 
 #: treemap/templates/treemap/forgot_username.html:12
 msgid "Email Address"
-msgstr "Email"
+msgstr "Adres email:"
 
 #: treemap/templates/treemap/forgot_username_done.html:7
 msgid "Email Sent"
@@ -1824,10 +1864,6 @@ msgstr "Zdjęcie dodane"
 msgid "View more details on the detail page"
 msgstr "Zobacz więcej szczegółów"
 
-#: treemap/templates/treemap/plot_detail.html:25
-msgid "Tree Number"
-msgstr "Numer drzewa"
-
 #: treemap/templates/treemap/plot_detail.html:65
 msgid "Width"
 msgstr "Szerokość"
@@ -1992,14 +2028,6 @@ msgstr "Gatunki"
 #: treemap/templates/treemap/field/species_tr.html:4
 msgid "Common Name"
 msgstr "Nazwa zwyczajowa"
-
-#: treemap/templates/treemap/field/species_tr.html:9
-msgid "Scientific Name"
-msgstr "Naukowa nazwa"
-
-#: treemap/templates/treemap/field/species_typeahead.html:23
-msgid "Need help identifying the tree's species?"
-msgstr "Sprawdź jakie to drzewo"
 
 #. Translators: Money saved
 #: treemap/templates/treemap/partials/benefit_value_row.html:17
@@ -2346,6 +2374,109 @@ msgstr ""
 "Aby podejrzeć szczegóły zmian w drzewie, bądź miejscu nasadzenia, kliknij Szczegóły."
 "Aby ponownie zobaczyć pełną listę zmian, kliknij Usuń filtr."
 
-#: treemap/templates/treemap/partials/step_set_location.html:4
-msgid "Set the location of tree"
-msgstr "Wybierz lokalizację drzewa"
+#~ msgid "Energy"
+#~ msgstr "Energia"
+
+#~ msgid "Carbon Dioxide"
+#~ msgstr "Dwutlenek węgla"
+
+#~ msgid "FAQ"
+#~ msgstr "FAQ"
+
+#~ msgid "Your account is now activated."
+#~ msgstr "Twoje konto jest już aktywne. Do dzieła!"
+
+#~ msgid "Link is valid for %(expiration_days)s days."
+#~ msgstr "Link aktywacyjny będzie działał jeszcze %(expiration_days)s dni."
+
+#~ msgid "Reset it"
+#~ msgstr "Zmień hasło"
+
+#~ msgid "Logged out"
+#~ msgstr "Wyloguj się"
+
+#~ msgid "Reset password at %(site_name)s"
+#~ msgstr "Zmień hasło tutaj: %(site_name)s"
+
+#~ msgid "You are now registered. Activation email sent."
+#~ msgstr ""
+#~ "Konto zostało założone.Sprawdź skrzynkę mailową z linkiem aktywacyjnym."
+
+#~ msgid ""
+#~ "\n"
+#~ "    %(tree_count)s</span> tree,\n"
+#~ "  "
+#~ msgid_plural ""
+#~ "\n"
+#~ "    %(tree_count)s</span> trees,\n"
+#~ "  "
+#~ msgstr[0] ""
+#~ "\n"
+#~ "    %(tree_count)s</span> drzewo,"
+#~ msgstr[1] ""
+#~ "\n"
+#~ "    %(tree_count)s</span> drzew,"
+#~ msgstr[2] ""
+
+#~ msgid ""
+#~ "\n"
+#~ "    %(plot_count)s</span> planting site\n"
+#~ "  "
+#~ msgid_plural ""
+#~ "\n"
+#~ "    %(plot_count)s</span> planting sites\n"
+#~ "  "
+#~ msgstr[0] ""
+#~ "\n"
+#~ "    %(plot_count)s</span> miejsce nasadzenia"
+#~ msgstr[1] ""
+#~ "\n"
+#~ "    %(plot_count)s</span> miejsca nasadzeń\n"
+#~ "  "
+#~ msgstr[2] ""
+
+#~ msgid "Your Turn"
+#~ msgstr "Twoja kolej"
+
+# info o źródle danych do uzupełnienia
+#~ msgid ""
+#~ "Our database of trees comes from public records and citizen foresters "
+#~ "like you. Update the information for this tree and help us grow!"
+#~ msgstr ""
+#~ "Spis drzew pochodzi z  xxxxx. Pomóż nam uzupełniać brakujące informacje. "
+#~ "Do dzieła!"
+
+#~ msgid "Air pollutants removed"
+#~ msgstr "Zmniejszenie zanieczyszczenia powietrza"
+
+# czy jest jakis termin naukowy?
+#~ msgid "Total Co2 stored to date"
+#~ msgstr "Całkowity dwutlenek węgla"
+
+#~ msgid "ID:"
+#~ msgstr "ID: "
+
+# nie wiem co to, czy musi byc, 
+#~ msgid "Audit ID"
+#~ msgstr "ID "
+
+#~ msgid "Model"
+#~ msgstr "Model"
+
+#~ msgid "Model #"
+#~ msgstr "Model #"
+
+#~ msgid "Commit By"
+#~ msgstr "Wprowadzona przez"
+
+# TBC czy to na pewno to
+#~ msgid "Commit On"
+#~ msgstr "Data wprowadzenia"
+
+#~ msgid "Name:"
+#~ msgstr "Imię:"
+
+# nie wiem co to dokładnie znaczy
+#~ msgid "Instance:"
+#~ msgstr "Przykład:"
+
