@@ -1,0 +1,16 @@
+[
+  {
+    "model": "treemap.treeproblemcatalog",
+    "fields": {
+      "name": "Mature tree has died.",
+      "description": "Mature tree has died."
+    }
+  },
+  {
+    "model": "treemap.treeproblemcatalog",
+    "fields": {
+      "name": "Tree branches are hitting a building.",
+      "description": "Tree branches are hitting a building."
+    }
+  }
+]

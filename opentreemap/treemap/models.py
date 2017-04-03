@@ -1165,6 +1165,26 @@ class Tree(Convertible, UDFModel, PendingAuditable, ValidationMixin):
         super(Tree, self).delete_with_user(user, *args, **kwargs)
 
 
+class TreeProblemCatalog(models.Model):
+    """
+    Model describing catalog of possible problems for trees. Data is loaded
+    from fixture.
+    """
+    name = models.CharField(max_length=200)
+    description = models.TextField()
+
+
+class TreeProblem(models.Model):
+    """
+    Model describing problem for a tree from catalog of tree problems.
+    """
+    user = models.ForeignKey(User)
+    created = models.DateTimeField(auto_now_add=True)
+    tree_problem = models.ForeignKey(TreeProblemCatalog)
+    tree = models.ForeignKey(Tree)
+    description = models.TextField()
+
+
 class Favorite(models.Model):
     user = models.ForeignKey(User)
     map_feature = models.ForeignKey(MapFeature)
