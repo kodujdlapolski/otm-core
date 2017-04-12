@@ -1381,6 +1381,19 @@ msgstr ""
 "    <p>Jeśli pojawią się problemy, <a href=\"mailto:%(support_email)s"
 "\">skontaktuj się z nami</a>, aby uzyskać dostęp do mapy drzew.</p>\n"
 "    "
+#: treemap/exceptions.py:56
+msgid "Sorry, there was a problem with logging you in. "
+"It appears your email is already in our database. "
+"Try to log in with your existing account. "
+"If you don't remember your login, please use \"Recover my username\" option."
+msgstr "Przykro nam, ale wystąpił problem z logowaniem. "
+"Wygląda na to, że Twój email istniał już w naszej bazie. "
+"Spróbuj zalogować się na swoje istniejące konto, "
+"a jeśli nie pamiętasz loginu, użyj opcji \"Przypomnij mój login\"."
+
+#: treemap/exceptions.py:61
+msgid "Sorry, logging in was unsuccessful. Try to use different method."
+msgstr "Niestety nie udało się zalogować w ten sposób. Spróbuj proszę innej metody logowania."
 
 #: treemap/templates/registration/activation_complete.html:7
 msgid "Thanks for activating your account"
