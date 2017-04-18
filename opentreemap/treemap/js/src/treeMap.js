@@ -6,6 +6,7 @@ var $ = require('jquery'),
     Bacon = require('baconjs'),
     url = require('url'),
     addTreeModeName = require('treemap/lib/addTreeMode.js').name,
+    reportTreeProblemName = require('treemap/lib/reportTreeProblem.js').name,
     addResourceModeName = require('treemap/lib/addResourceMode.js').name,
     BU = require('treemap/lib/baconUtils.js'),
     buttonEnabler = require('treemap/lib/buttonEnabler.js'),
@@ -19,6 +20,8 @@ function changeMode (modeOptions) {
 
     if (modeName === addTreeModeName) {
         modes.activateAddTreeMode(false);
+    } else if (modeName === reportTreeModeName) {
+        modes.activateReportTreeProblemMode(false);
     } else if (modeName === addResourceModeName) {
         modes.activateAddResourceMode(false, type);
     } else {
@@ -75,6 +78,10 @@ var performAdd = function (e, addFn) {
 };
 
 $('[data-action="addtree"]').click(function(e) {
+    performAdd(e, modes.activateAddTreeMode);
+});
+
+$('[data-action="report_tree_problem"]').click(function(e) {
     performAdd(e, modes.activateAddTreeMode);
 });
 

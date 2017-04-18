@@ -13,3 +13,17 @@
    data-disabled-title="{% trans "Adding trees is not available to all users" %}"
    data-href="{% url 'map' instance_url_name=request.instance.url_name %}?m=addTree"
    disabled="disabled"><i class="icon-plus"></i> {% trans "Add a Tree" %}</a>
+
+<a class="btn btn-warning"
+ {% if embed %}
+ target="_blank"
+ {% else %}
+ data-feature="report_tree_problem"
+ data-event-category="report-tree-problem"
+ data-event-action="start-report-tree-problem"
+ {% endif %}
+ data-action='report_tree_problem'
+ data-href="{% url 'report_tree_problem' instance_url_name=request.instance.url_name %}">
+ <i class="icon-plus"></i> 
+  {% trans "Report a tree problem" %}
+</a>

@@ -24,7 +24,7 @@ import treemap.views.photo as photo_views
 import treemap.views.tree as tree_views
 import treemap.views.misc as misc_views
 import treemap.views.map_feature as feature_views
-from treemap.views.tree_problem import submit_tree_problem_func
+from treemap.views.tree_problem import report_tree_problem_func
 
 
 add_map_feature_photo_do = partial(
@@ -293,8 +293,8 @@ approve_or_reject_photos = do(
 # Tree problem
 ####################################
 
-submit_tree_problem = do(
+report_tree_problem = do(
     instance_request,
     require_http_method('POST'),
     json_api_edit,
-    submit_tree_problem_func)
+    report_tree_problem_func)

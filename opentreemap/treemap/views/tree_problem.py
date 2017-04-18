@@ -4,9 +4,9 @@ from django.views.generic.edit import FormView
 
 
 class AddTreeProblemView(FormView):
-    
+
     form_class = None
 
 
-def submit_tree_problem_func():
+def report_tree_problem_func():
     pass

@@ -62,8 +62,8 @@ urlpatterns = patterns(
     url(r'^plots/(?P<feature_id>\d+)/trees/(?P<tree_id>\d+)/$',
         routes.tree_detail, name='tree_detail'),
 
-    url(r'^features/(?P<feature_id>\d+)/problem/$', routes.submit_tree_problem,
-        name='submit_problem'),
+    url(r'^features/problem$', routes.report_tree_problem,
+        name='report_tree_problem'),
 
     # TODO: this duplication exists in multiple places.
     # we make two endpoints for 'plots/<id>/tree/<id>/' and 'plots/<id>/'

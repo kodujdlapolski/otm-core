@@ -12,6 +12,7 @@ var $                   = require('jquery'),
     U                   = require('treemap/lib/utility.js'),
     browseTreesMode     = require('treemap/lib/browseTreesMode.js'),
     addTreeMode         = require('treemap/lib/addTreeMode.js'),
+    reportTreeProblemMode  = require('treemap/lib/reportTreeProblemMode.js'),
     editTreeDetailsMode = require('treemap/lib/editTreeDetailsMode.js'),
     addResourceMode     = require('treemap/lib/addResourceMode.js'),
     inlineEditForm      = require('treemap/lib/inlineEditForm.js'),
@@ -74,6 +75,9 @@ function activateBrowseTreesMode(safeTranstion) {
 }
 function activateAddTreeMode(safeTranstion) {
     activateMode(addTreeMode, sidebarAddTree, safeTranstion);
+}
+function activateReportTreeProblemMode(safeTranstion) {
+    activateMode(reportTreeProblemMode, sidebarAddTree, safeTranstion);
 }
 function activateEditTreeDetailsMode(safeTranstion) {
     activateMode(editTreeDetailsMode, sidebarBrowseTrees, safeTranstion);
