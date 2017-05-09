@@ -19,7 +19,16 @@
                     {% endfor %}
                 </ul>
             {% endif %}
-          {% for field in form %}
+
+            {% if messages %}
+            <ul class='errorlist'>
+                {% for message in messages %}
+                <li>{{ message }}</li>
+                {% endfor %}
+            </ul>
+            {% endif %}
+
+            {% for field in form %}
                 <div class="field">
                     {% if field.name == "username" %}
                         <a href="{% url 'forgot_username' %}" class="pull-right">

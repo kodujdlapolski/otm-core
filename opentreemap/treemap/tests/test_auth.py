@@ -3,6 +3,7 @@ from __future__ import print_function
 from __future__ import unicode_literals
 from __future__ import division
 
+import mock
 from django.test.utils import override_settings
 
 from treemap.tests import (RequestTestCase, make_instance,
@@ -53,6 +54,18 @@ class LoginTests(RequestTestCase):
     # def test_profile_redirect_when_no_current_user(self):
     #     res = self.client.get('/accounts/profile/')
     #     self.assertRedirects(res, '/accounts/profile/login/')
+
+    @override_settings(SOCIAL_AUTH_GOOGLE_OAUTH2_KEY='1', SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET='2')
+    @mock.patch('social_core.backends.oauth.OAuthAuth.state_token', return_value='zz')
+    def test_google_auth_redirect(self, *args):
+        response = self.client.get('/oauth/login/google-oauth2/')
+        self.assertRedirects(
+            response,
+            'https://accounts.google.com/o/oauth2/auth?scope=openid+email+profile&state=zz&'
+            'redirect_uri=http://testserver/oauth/complete/google-oauth2/&response_type=code&'
+            'client_id=1',
+            status_code=302,
+            target_status_code=404)
 
 
 class PublicInstanceTests(RequestTestCase):
