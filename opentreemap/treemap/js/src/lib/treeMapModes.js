@@ -25,12 +25,14 @@ var $                   = require('jquery'),
 
 var sidebarBrowseTrees          = '#sidebar-browse-trees',
     sidebarAddTree              = '#sidebar-add-tree',
+    sidebarReportTreeProblem    = '#sidebar-report-tree-problem',
     sidebarAddResource          = '#sidebar-add-resource',
     $treeDetailAccordionSection = U.$find('#tree-detail'),
     $fullDetailsButton          = U.$find('#full-details-button'),
     $treeDetailButtonGroup      = U.$find('#map-plot-details-button'),
     $exploreMapHeaderLink       = U.$find('.navbar li.explore-map'),
     $addFeatureHeaderLink       = U.$find('.navbar li[data-feature=add_plot]');
+
 
 function activateMode(mode, sidebar, safeTransition, type) {
 
@@ -77,7 +79,7 @@ function activateAddTreeMode(safeTranstion) {
     activateMode(addTreeMode, sidebarAddTree, safeTranstion);
 }
 function activateReportTreeProblemMode(safeTranstion) {
-    activateMode(reportTreeProblemMode, sidebarAddTree, safeTranstion);
+    activateMode(reportTreeProblemMode, sidebarReportTreeProblem, safeTranstion);
 }
 function activateEditTreeDetailsMode(safeTranstion) {
     activateMode(editTreeDetailsMode, sidebarBrowseTrees, safeTranstion);
@@ -86,10 +88,11 @@ function activateAddResourceMode(safeTranstion, type) {
     activateMode(addResourceMode, sidebarAddResource, safeTranstion, type);
 }
 
-function inBrowseTreesMode() { return currentMode === browseTreesMode; }
-function inAddTreeMode()     { return currentMode === addTreeMode; }
-function inEditTreeMode()    { return currentMode === editTreeDetailsMode; }
-function inAddResourceMode() { return currentMode === addResourceMode; }
+function inBrowseTreesMode()            { return currentMode === browseTreesMode; }
+function inAddTreeMode()                { return currentMode === addTreeMode; }
+function inReportTreeProblemMode()      { return currentMode === reportTreeProblemMode; }
+function inEditTreeMode()               { return currentMode === editTreeDetailsMode; }
+function inAddResourceMode()            { return currentMode === addResourceMode; }
 
 function init(mapManager, triggerSearchBus, embed, completedSearchStream) {
     // browseTreesMode and editTreeDetailsMode share an inlineEditForm,
@@ -151,6 +154,22 @@ function init(mapManager, triggerSearchBus, embed, completedSearchStream) {
         triggerSearchBus: triggerSearchBus
     });
 
+    reportTreeProblemMode.init({
+        $addFeatureHeaderLink: $addFeatureHeaderLink,
+        $exploreMapHeaderLink: $exploreMapHeaderLink,
+        mapManager: mapManager,
+        plotMarker: plotMarker,
+        inMyMode: inReportTreeProblemMode,
+        sidebar: sidebarReportTreeProblem,
+        onClose: _.partial(activateBrowseTreesMode, true),
+        formSelector: '#report-tree-problem-form',
+        validationFields: '#report-tree-problem-container [data-class="error"]',
+        indexOfSetLocationStep: 0,
+        typeahead: getSpeciesTypeaheadOptions("add-tree-species"),
+        addFeatureRadioOptions: 'addFeatureOptions',
+        triggerSearchBus: triggerSearchBus
+    });
+
     editTreeDetailsMode.init({
         mapManager: mapManager,
         inlineEditForm: form,
@@ -196,5 +215,6 @@ module.exports = {
     init: init,
     activateBrowseTreesMode: activateBrowseTreesMode,
     activateAddTreeMode: activateAddTreeMode,
-    activateAddResourceMode: activateAddResourceMode
+    activateAddResourceMode: activateAddResourceMode,
+    activateReportTreeProblemMode: activateReportTreeProblemMode,
 };

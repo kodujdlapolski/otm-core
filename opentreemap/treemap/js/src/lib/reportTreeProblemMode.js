@@ -32,14 +32,14 @@ function init(options) {
         // Let user start creating a feature (by clicking the map)
         plotMarker.useTreeIcon(true);
         plotMarker.enablePlacing();
-        $('body').addClass('add-feature');
+        $('body').addClass('report-tree-problem');
         hideSearch = $('body').hasClass('hide-search');
     };
 
     deactivateMode = function() {
         typeahead.clear();
         manager.deactivate();
-        $('body').removeClass('add-feature');
+        $('body').removeClass('report-tree-problem');
         $('body').toggleClass('hide-search', hideSearch);
     };
 

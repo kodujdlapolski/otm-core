@@ -26,10 +26,10 @@ function init(options) {
         formSelector = options.formSelector,
         indexOfSetLocationStep = options.indexOfSetLocationStep,
         addFeatureRadioOptions = options.addFeatureRadioOptions,
-        addFeatureUrl = reverse.add_plot(config.instance.url_name),
+        addFeatureUrl = reverse.report_tree_problem(config.instance.url_name),
         onSaveBefore = options.onSaveBefore || _.identity,
 
-        $addFeatureHeaderLink = options.$addFeatureHeaderLink,
+        $addFeatureHeaderLink = U.$find('.navbar li[data-feature=report_tree_problem]'),
         $exploreMapHeaderLink = options.$exploreMapHeaderLink,
 
         stepControls = require('treemap/lib/stepControls.js').init($sidebar),
@@ -277,7 +277,7 @@ function init(options) {
 
         if (!result.enabled) {
             close();
-            $('[data-feature="add_plot"]').hide();
+            $('[data-feature="report_tree_problem"]').hide();
             return;
         }
 
