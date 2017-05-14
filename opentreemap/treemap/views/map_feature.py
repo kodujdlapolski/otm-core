@@ -24,7 +24,7 @@ from treemap.lib.hide_at_zoom import (update_hide_at_zoom_after_move,
 
 from treemap.units import Convertible
 from treemap.models import (Tree, Species, MapFeature,
-                            MapFeaturePhoto, TreePhoto, Favorite)
+                            MapFeaturePhoto, TreePhoto, Favorite, TreeProblem, TreeProblemCatalog)
 from treemap.util import (package_field_errors, to_object_name)
 
 from treemap.images import get_image_from_request
@@ -238,7 +238,7 @@ def update_map_feature(request_dict, user, feature):
             val.transform(3857)
         elif field_classname.endswith('MultiPolygonField'):
             srid = val.get('srid', 4326)
-            val = MultiPolygon(Polygon(val['polygon'], srid=srid), srid=srid)
+            val = MultiPolygon(Polygon(val['polygon'], sget_object_or_404rid=srid), srid=srid)
             val.transform(3857)
 
         if attr == 'mapfeature_ptr':
@@ -259,7 +259,9 @@ def update_map_feature(request_dict, user, feature):
                 raise KeyError('Invalid UDF %s' % attr)
         elif attr in model.fields():
             model.apply_change(attr, val)
+
         else:
+            print(model, attr, val)
             raise Exception('Malformed request - invalid field %s' % attr)
 
     def save_and_return_errors(thing, user):
@@ -276,11 +278,26 @@ def update_map_feature(request_dict, user, feature):
 
     rev_updates = ['universal_rev']
     old_geom = feature.geom
+
+    try:
+
+        tree_problem = get_object_or_404(TreeProblemCatalog, pk=request_dict['treeproblem.treeproblem'])
+
+        tree_problem_instance = TreeProblem(
+            user=user,
+            tree_problem=tree_problem,
+            description=request_dict['treeproblem.description'],
+        )
+    except KeyError:
+        tree_problem_instance = None
+
     for (identifier, value) in request_dict.iteritems():
+
         split_template = 'Malformed request - invalid field %s'
         object_name, field = dotted_split(identifier, 2,
                                           failure_format_string=split_template)
-        if (object_name not in feature_object_names + ['tree']):
+
+        if (object_name not in feature_object_names + ['tree']) and object_name != 'treeproblem':
             raise Exception(split_template % identifier)
 
         tree_udfc_names = [fdef.canonical_name
@@ -308,6 +325,10 @@ def update_map_feature(request_dict, user, feature):
                                           instance=feature.instance, pk=value)
             elif field == 'plot' and value == unicode(feature.pk):
                 value = feature
+
+        elif object_name == 'treeproblem':
+            pass
+
         else:
             raise Exception(
                 'Malformed request - invalid model %s' % object_name)
@@ -340,6 +361,9 @@ def update_map_feature(request_dict, user, feature):
         update_hide_at_zoom_after_move(feature, user, old_geom)
 
     feature.instance.update_revs(*rev_updates)
+
+    if tree_problem_instance and tree:
+        tree_problem_instance.tree = tree
 
     return feature, tree
 

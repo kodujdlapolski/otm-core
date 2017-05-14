@@ -8,7 +8,7 @@
 
     ziom
     <div class="add-step-container" id="report-tree-problem-container">
-        {% include "treemap/partials/step_set_location.html" with first=True feature_name="tree" %}
+        {% include "treemap/partials/step_set_location.html" with first=True feature_name="problem" %}
         <div class="add-step">
             <div class="add-step-header">
                 {% trans "Add species and additional info" %}
@@ -16,7 +16,11 @@
             </div>
             <div class="add-step-content">
                 <form id="report-tree-problem-form" onsubmit="return false;">
-                    {# The "add-tree-species" label is used as an id prefix in "species_ul.html" #}
+
+                    Typ problemu
+                    <input type="text" name="treeproblem.treeproblem" />
+                    <input type="text" name="treeproblem.description" />
+
                     {% create "add-tree-species" from "Tree.species" in request.instance withtemplate "treemap/field/species_div.html" %}
                     {% trans "Trunk Diameter" as diameter %}
                     {% create diameter from "Tree.diameter" in request.instance withtemplate "treemap/field/diameter_div.html" %}
@@ -41,25 +45,6 @@
                 <h4 class="summaryAddress"></h4>
                 <h6>{% trans "Nearby Address" %}</h6>
                 <hr/>
-                <label>{% trans "After I add this tree..." %}</label>
-                <div>
-                    <input type="radio" name="addFeatureOptions" value="copy" id="addtree-addsame"
-                           data-event-category="add-tree" data-event-action="done-add-copy" /><label for="addtree-addsame">
-                        {% trans "Add another tree with these details" %}
-                    </label>
-                </div>
-                <div>
-                    <input type="radio" name="addFeatureOptions" value="new" id="addtree-addnew" 
-                           data-event-category="add-tree" data-event-action="done-add-new" /><label for="addtree-addnew">
-                        {% trans "Add another tree with new details" %}
-                    </label>
-                </div>
-                <div>
-                    <input type="radio" name="addFeatureOptions" value="edit" id="addtree-viewdetails"
-                           data-event-category="add-tree" data-event-action="done-edit" /><label for="addtree-viewdetails">
-                        {% trans "Continue editing this tree" %}
-                    </label>
-                </div>
                 <div>
                     <input type="radio" name="addFeatureOptions" value="close" id="addtree-done" checked
                            data-event-category="add-tree" data-event-action="done-close" /><label for="addtree-done">

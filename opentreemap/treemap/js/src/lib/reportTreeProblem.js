@@ -26,7 +26,7 @@ function init(options) {
         formSelector = options.formSelector,
         indexOfSetLocationStep = options.indexOfSetLocationStep,
         addFeatureRadioOptions = options.addFeatureRadioOptions,
-        addFeatureUrl = reverse.report_tree_problem(config.instance.url_name),
+        addFeatureUrl = reverse.add_plot(config.instance.url_name),
         onSaveBefore = options.onSaveBefore || _.identity,
 
         $addFeatureHeaderLink = U.$find('.navbar li[data-feature=report_tree_problem]'),

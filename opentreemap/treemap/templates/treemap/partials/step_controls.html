@@ -3,7 +3,7 @@
 <div class="add-step-footer">
     <span class="counter">
         <strong>
-          {% trans "Step" %}
+          {% trans "Krok" %}
           <span class='footer-step-number'></span>
         </strong>
         {% trans "of" %}
@@ -12,12 +12,12 @@
     <ul class="pager">
         {% if not first %}
         <li class="previous">
-            <a class="btn btn-primary" href="javascript:;">{% trans "« Back" %}</a>
+            <a class="btn btn-primary" href="javascript:;">{% trans "« Wstecz" %}</a>
         </li>
         {% endif %}
         <li class="next">
             <a class="btn btn-primary" href="javascript:;"{% if feature_name and last %} data-event-category="add-{{ feature_name }}" data-event-action="confirm-done"{% endif %}>
-                {% if last %}{% trans "Done" %}{% else %}{% trans "Next »" %}{% endif %}
+                {% if last %}{% trans "Wyślij" %}{% else %}{% trans "Dalej »" %}{% endif %}
             </a>
         </li>
     </ul>

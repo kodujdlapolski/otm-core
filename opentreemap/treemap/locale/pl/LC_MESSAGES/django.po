@@ -1705,6 +1705,14 @@ msgstr "Mapa nie jest dostępna "
 msgid "Add species and additional info"
 msgstr "Uzupełnij dodatkowe informacje"
 
+#: treemap/templates/treemap/partials/step_set_location.html:7
+msgid "Set the location"
+msgstr "Wybierz miejsce"
+
+#: treemap/templates/treemap/map-report-tree-problem.html:7
+msgid "Report problem with a tree"
+msgstr "Zgłoś problem z drzewem"
+
 #: treemap/templates/treemap/map-add-tree.html:16
 #: treemap/templates/treemap/plot_detail.html:36
 #: treemap/templates/treemap/partials/map_feature_accordion.html:13
@@ -2480,3 +2488,6 @@ msgstr ""
 #~ msgid "Instance:"
 #~ msgstr "Przykład:"
 
+#: treemap/templates/treemap/partials/step_controls.html:20
+# msgid "Done"
+# msgstr "Zrobione"

@@ -1,7 +1,11 @@
 {% load i18n %}
 <div class="add-step with-map">
     <div class="add-step-header">
+    {% if feature_name == 'tree' %}
 	    {% trans "Set the location of tree" %}
+    {% else %}
+        {% trans "Set the location" %}
+    {% endif %}
         <a href="javascript:;" class="close cancelBtn small visible-xs-block">×</a>
     </div>
     <div class="add-step-content">

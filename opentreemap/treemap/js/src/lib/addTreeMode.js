@@ -32,7 +32,6 @@ function init(options) {
         // Let user start creating a feature (by clicking the map)
         plotMarker.useTreeIcon(true);
         plotMarker.enablePlacing();
-        console.log('sssss');
         $('body').addClass('add-feature');
         hideSearch = $('body').hasClass('hide-search');
     };
