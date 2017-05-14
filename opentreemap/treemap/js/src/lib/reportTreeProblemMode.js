@@ -51,7 +51,7 @@ function init(options) {
         if (stepNumber === STEP_FINAL) {
             var species = $speciesTypeahead.data('datum'),
                 common_name = species ? species.common_name :
-                              aTreeFieldIsSet() ? "Missing species" : "Empty planting site",
+                              aTreeFieldIsSet() ? "Brak gatunku drzewa" : "Puste miejsce nasadzenia drzew",
                 scientific_name = species ? species.scientific_name : '';
             $summaryHead.text(common_name);
             $summarySubhead.text(scientific_name);

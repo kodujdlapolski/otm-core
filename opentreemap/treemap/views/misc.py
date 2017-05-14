@@ -18,7 +18,7 @@ from django.template import RequestContext
 
 from stormwater.models import PolygonalMapFeature
 
-from treemap.models import User, Species, StaticPage, Instance
+from treemap.models import User, Species, StaticPage, Instance, TreeProblemCatalog
 
 from treemap.plugin import get_viewable_instances_filter
 
@@ -84,6 +84,7 @@ def get_map_view_context(request, instance):
         'resource_classes': resource_classes,
         'only_one_resource_class': len(resource_classes) == 1,
         'q': request.GET.get('q'),
+        'problem_catalog': TreeProblemCatalog.objects.all(),
     }
     add_map_info_to_context(context, instance)
     return context

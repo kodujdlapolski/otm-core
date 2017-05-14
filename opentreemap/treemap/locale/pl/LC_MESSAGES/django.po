@@ -1713,6 +1713,16 @@ msgstr "Wybierz miejsce"
 msgid "Report problem with a tree"
 msgstr "Zgłoś problem z drzewem"
 
+
+#: treemap/templates/treemap/map-report-tree-problem.html:22
+msgid "Problem type"
+msgstr "Typ problemu"
+
+
+#: treemap/templates/treemap/map-report-tree-problem.html:29
+msgid "Problem description"
+msgstr "Opis problemu"
+
 #: treemap/templates/treemap/map-add-tree.html:16
 #: treemap/templates/treemap/plot_detail.html:36
 #: treemap/templates/treemap/partials/map_feature_accordion.html:13
@@ -2489,5 +2499,11 @@ msgstr ""
 #~ msgstr "Przykład:"
 
 #: treemap/templates/treemap/partials/step_controls.html:20
-# msgid "Done"
-# msgstr "Zrobione"
+msgid "Done"
+msgstr "Zrobione"
+
+#: treemap/templates/treemap/partials/add_plot_btn.html:30
+msgid "Report a tree problem"
+msgstr "Zgłoś problem z drzewem"
+
+

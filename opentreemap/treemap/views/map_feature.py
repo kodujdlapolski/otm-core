@@ -210,6 +210,7 @@ def delete_map_feature(request, instance, feature_id):
 
 @transaction.atomic
 def update_map_feature(request_dict, user, feature):
+    print(request_dict)
     """
     Update a map feature. Expects JSON in the request body to be:
     {'model.field', ...}
@@ -281,13 +282,14 @@ def update_map_feature(request_dict, user, feature):
 
     try:
 
-        tree_problem = get_object_or_404(TreeProblemCatalog, pk=request_dict['treeproblem.treeproblem'])
+        tree_problem = get_object_or_404(TreeProblemCatalog, pk=request_dict.pop('treeproblem.treeproblem'))
 
         tree_problem_instance = TreeProblem(
             user=user,
             tree_problem=tree_problem,
-            description=request_dict['treeproblem.description'],
+            description=request_dict.pop('treeproblem.description'),
         )
+
     except KeyError:
         tree_problem_instance = None
 
@@ -364,6 +366,7 @@ def update_map_feature(request_dict, user, feature):
 
     if tree_problem_instance and tree:
         tree_problem_instance.tree = tree
+        tree_problem_instance.save()
 
     return feature, tree
 

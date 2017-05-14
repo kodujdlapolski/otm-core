@@ -1,25 +1,39 @@
 {% load form_extras %}
 {% load i18n %}
 
-{% with nsteps=3 %}
+{% with nsteps=4 %}
 <div class="sidebar-inner">
     <a href="javascript:;" class="close cancelBtn small hidden-xs">×</a>
     <h3>{% trans "Report problem with a tree" %}</h3>
 
-    ziom
     <div class="add-step-container" id="report-tree-problem-container">
         {% include "treemap/partials/step_set_location.html" with first=True feature_name="problem" %}
+
+
         <div class="add-step">
             <div class="add-step-header">
-                {% trans "Add species and additional info" %}
+                {% trans "Add problem description" %}
                 <a href="javascript:;" class="close cancelBtn small visible-xs-block">×</a>
             </div>
             <div class="add-step-content">
+
                 <form id="report-tree-problem-form" onsubmit="return false;">
 
-                    Typ problemu
-                    <input type="text" name="treeproblem.treeproblem" />
-                    <input type="text" name="treeproblem.description" />
+                    {% trans "Problem type" %}
+                    <select class="search-query form-control" name="treeproblem.treeproblem">
+                    {% for problem in problem_catalog %}
+                        <option value="{{ problem.id }}">{{ problem.name }}</option>
+                    {% endfor %}
+                    </select>
+                    <br />
+                    {% trans "Problem description "%}
+                    <textarea class="search-query form-control" name="treeproblem.description"></textarea>
+
+                    <hr />
+
+                    <div class="add-step-header">
+                    {% trans "Add species" %}
+                    </div>
 
                     {% create "add-tree-species" from "Tree.species" in request.instance withtemplate "treemap/field/species_div.html" %}
                     {% trans "Trunk Diameter" as diameter %}
@@ -30,10 +44,13 @@
                     {% endfor %}
 
                     {% include 'treemap/partials/hidden_address.html' with object_name='plot' %}
+
                 </form>
+
             </div>
             {% include 'treemap/partials/step_controls.html' %}
         </div>
+
         <div class="add-step">
             <div class="add-step-header">
                 {% trans "Finalize this tree" %}
