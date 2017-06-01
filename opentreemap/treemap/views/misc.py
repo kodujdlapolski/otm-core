@@ -84,7 +84,8 @@ def get_map_view_context(request, instance):
         'resource_classes': resource_classes,
         'only_one_resource_class': len(resource_classes) == 1,
         'q': request.GET.get('q'),
-        'problem_catalog': TreeProblemCatalog.objects.all(),
+        'tree_problem_list': TreeProblemCatalog.objects.all().order_by('pk'),
+        'instance_name': instance.name,
     }
     add_map_info_to_context(context, instance)
     return context

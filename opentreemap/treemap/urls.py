@@ -62,7 +62,7 @@ urlpatterns = patterns(
     url(r'^plots/(?P<feature_id>\d+)/trees/(?P<tree_id>\d+)/$',
         routes.tree_detail, name='tree_detail'),
 
-    url(r'^features/problem$', routes.report_tree_problem,
+    url(r'^features/(?P<tree>\d+)/problem$', routes.report_tree_problem_func,
         name='report_tree_problem'),
 
     # TODO: this duplication exists in multiple places.

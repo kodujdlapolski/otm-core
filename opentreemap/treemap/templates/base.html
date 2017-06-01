@@ -45,10 +45,15 @@
       {% endblock google_analytics_actions %}
     })();
     </script>
+
     <!-- End Analytics -->
     {% endif %}
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
   </head>
   <body>
+
+    {% include "treemap/report_tree_problem_modal.html" %}
+
     <div {% block outermost_atts %}{% endblock outermost_atts %} class="wrapper{% if embed %} embed{% endif %}">
       {% block topnav %}
       <!-- Top Nav -->

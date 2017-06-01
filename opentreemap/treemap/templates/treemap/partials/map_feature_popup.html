@@ -23,5 +23,12 @@
                data-href="{% url 'map_feature_detail_edit' instance_url_name=request.instance.url_name feature_id=feature.pk edit='edit' %}"
                class="btn btn-sm btn-info">{% trans "Edit" %}</a>
         {% endif %}
+          <hr>
+          <a 
+            class="btn btn-default"
+            id="openReportTreeProblem"
+            data-toggle="modal"
+            data-target="#reportTreeProblemModal"
+            data-id="{{ feature.pk }}">Zgłoś problem z drzewem</a>     
     </div>
 </div>

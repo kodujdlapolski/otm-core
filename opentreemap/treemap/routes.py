@@ -296,5 +296,4 @@ approve_or_reject_photos = do(
 report_tree_problem = do(
     instance_request,
     require_http_method('POST'),
-    json_api_edit,
     report_tree_problem_func)
