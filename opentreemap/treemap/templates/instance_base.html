@@ -42,10 +42,6 @@ ga('set', 'page', pathname);
     </li>
   {% else %}
 
-    <!-- TODO: this is temp -->
-    <button class="btn btn-default" id="openReportTreeProblem" data-toggle="modal" data-target="#reportTreeProblemModal" data-id="1">Klik</button>
-
-
     <li data-feature="add_plot">
       <a data-always-enable='{{ last_effective_instance_user|plot_is_creatable }}'
          data-disabled-title='{% trans "Adding trees is not available to all users" %}'
