@@ -445,6 +445,36 @@ FACEBOOK_SOCIAL_AUTH_RAISE_EXCEPTIONS = True
 SOCIAL_AUTH_RAISE_EXCEPTIONS = True
 RAISE_EXCEPTIONS = True
 
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': True,
+    'handlers': {
+        'stream': {
+            'level': 'DEBUG',
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['stream'],
+            'level': 'ERROR',
+            'propagate': False,
+            'formatter': 'simple'
+        },
+        'treemap.views.map_feature': {
+            'handlers': ['stream'],
+            'level': 'INFO',
+            'propagate': True,
+            'formatter': 'simple'
+        }
+    },
+    'formatters': {
+        'simple': {
+            'format': '%(asctime)s %(levelname)s %(module)s %(message)s'
+        },
+    }
+}
+
 SOCIAL_AUTH_FACEBOOK_SCOPE = ['email']
 SOCIAL_AUTH_FACEBOOK_API_VERSION = '2.8'
 

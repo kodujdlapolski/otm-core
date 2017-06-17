@@ -17,6 +17,7 @@ from django.db import transaction
 from django.contrib.gis.geos import Point, MultiPolygon, Polygon
 from django.contrib.gis.db.models import GeometryField
 from django.utils.translation import ugettext as _
+import logging
 
 from opentreemap.util import dotted_split
 from treemap.lib.hide_at_zoom import (update_hide_at_zoom_after_move,
@@ -37,6 +38,8 @@ from treemap.lib.map_feature import (get_map_feature_or_404,
                                      context_dict_for_map_feature)
 from treemap.views.misc import add_map_info_to_context
 
+
+logger = logging.getLogger(__name__)
 
 def _request_to_update_map_feature(request, feature):
     request_dict = json.loads(request.body)
@@ -80,11 +83,17 @@ def get_photo_context_and_errors(fn):
     return wrapper
 
 
+def add_tree_problem_to_context(context, instance):
+    tree = context['tree']
+    context['tree_problem'] = tree.treeproblem_set.all().order_by('id')
+
+
 def map_feature_detail(request, instance, feature_id,
                        render=False, edit=False):
     context, partial = _map_feature_detail_context(
         request, instance, feature_id, edit)
     add_map_info_to_context(context, instance)
+    add_tree_problem_to_context(context, instance)
 
     if render:
         template = 'treemap/map_feature_detail.html'

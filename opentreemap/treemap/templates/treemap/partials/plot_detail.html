@@ -7,12 +7,13 @@
 {% load util %}
 
 {% block subclass_details %}
-
     {% for group in field_groups %}
         {% if group.model == "plot" %}
             {% include "treemap/partials/plot_section.html" %}
         {% elif group.model == "tree" %}
             {% include "treemap/partials/tree_section.html" %}
+        {% elif group.model == "treeproblem" %}
+            {% include "treemap/partials/tree_problem_section.html" %}
         {% endif %}
     {% endfor %}
 
