@@ -217,7 +217,7 @@ search_tree_benefits = do(
     instance_request,
     etag(tree_views.ecobenefits_hash),
     render_template('treemap/partials/eco_benefits.html'),
-    tree_views.search_tree_benefits)
+    tree_views.simplified_tree_benefits)
 
 add_tree_photo = add_map_feature_photo_do(tree_views.add_tree_photo)
 

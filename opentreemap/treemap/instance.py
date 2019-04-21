@@ -7,7 +7,7 @@ from copy import deepcopy
 
 from django.contrib.gis.db import models
 from django.contrib.gis.db.models import Extent
-from django.contrib.gis.gdal import SpatialReference
+from django.contrib.gis.gdal.srs import SpatialReference
 from django.contrib.gis.geos import MultiPolygon, Polygon, GEOSGeometry
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from django.core.validators import RegexValidator
