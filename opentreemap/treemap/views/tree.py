@@ -137,7 +137,7 @@ def simplified_tree_benefits(request, instance):
         k.replace('.', ''):
         {
             'label': descriptions[k],
-            'value': round(v / 1000, 2),
+            'value': round(v / 1000, 2),  # Value should be shown in kg
             'unit': unit,
         }
         for k, v in data['benefits'].iteritems()
