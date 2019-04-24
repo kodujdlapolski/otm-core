@@ -151,11 +151,7 @@ def simplified_tree_benefits(request, instance):
     context = {
         'used_trees': data['trees_count'],
         'total_trees': Tree.objects.filter(instance=instance).count(),
-        'n_empty_plots': 0,
-        'n_resources': 0,
-        'tree_count_label': 'trees',
-        'empty_plot_count_label': 'empty planting sites',
-        'has_resources': True,
+        'has_resources': False,
         'hide_summary': False,
         'single_result': None,
         'benefits': benefits,
