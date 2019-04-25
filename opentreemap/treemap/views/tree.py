@@ -4,6 +4,7 @@ from __future__ import unicode_literals
 from __future__ import division
 
 import hashlib
+import requests
 
 from django.core.exceptions import ValidationError
 from django.core.urlresolvers import reverse
@@ -11,6 +12,7 @@ from django.utils.translation import ugettext as _, ungettext
 from django.shortcuts import get_object_or_404
 from django.db import transaction
 from django.http import HttpResponseRedirect
+from django.conf import settings
 
 from treemap.search import Filter
 from treemap.models import Tree, Plot
@@ -115,6 +117,45 @@ def search_tree_benefits(request, instance):
                                                 filter)
     }
     context.update(formatted)
+    return context
+
+
+def simplified_tree_benefits(request, instance):
+    unit = 'kg/rok'
+    req = requests.get(settings.ECO_SERVICE_URL)
+    req.raise_for_status()
+    data = req.json()
+
+    descriptions = {
+        'O3': u'Redukcja ozonu (O3)',
+        'NO2': u'Redukcja dwutlenku azotu (NO2)',
+        'SO2': u'Redukcja dwutlenku siarki (SO2)',
+        'PM2.5': u'Redukcja pyłów 2.5 µm (PM2,5)'
+    }
+
+    benefits = {
+        k.replace('.', ''):
+        {
+            'label': descriptions[k],
+            'value': round(v / 1000, 2),  # Value should be shown in kg
+            'unit': unit,
+        }
+        for k, v in data['benefits'].iteritems()
+    }
+    benefits['totals'] = {
+        'label': u'Redukcja zanieczyszczeń w sumie',
+        'value': reduce(lambda x, row: x + row['value'], benefits.values(), 0),
+        'unit': unit
+    }
+
+    context = {
+        'used_trees': data['trees_count'],
+        'total_trees': Tree.objects.filter(instance=instance).count(),
+        'has_resources': False,
+        'hide_summary': False,
+        'single_result': None,
+        'benefits': benefits,
+    }
     return context
 
 

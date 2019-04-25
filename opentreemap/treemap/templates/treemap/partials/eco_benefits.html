@@ -8,17 +8,14 @@
             <i class="icon-right-open"></i>
             <i class="icon-cancel"></i>
         </a>
-        {% with plot_benefits=benefits.plot %}
-            {% include "treemap/partials/benefit_value_row.html" with benefit=plot_benefits.totals total=True %}
-            {% if not hide_summary and plot_benefits %}
+            {% include "treemap/partials/benefit_value_row.html" with benefit=benefits.totals icon='gauge' total=True %}
+            {% if not hide_summary and benefits %}
                 <div class="benefit-value-title">{% trans "Tree Benefits"%}</div>
             {% endif %}
-            {% include "treemap/partials/benefit_value_row.html" with benefit=plot_benefits.energy icon='flash-1' %}
-            {% include "treemap/partials/benefit_value_row.html" with benefit=plot_benefits.stormwater icon='tint' %}
-            {% include "treemap/partials/benefit_value_row.html" with benefit=plot_benefits.airquality icon='cloud' %}
-            {% include "treemap/partials/benefit_value_row.html" with benefit=plot_benefits.co2 %}
-            {% include "treemap/partials/benefit_value_row.html" with benefit=plot_benefits.co2storage %}
-        {% endwith %}
+            {% include "treemap/partials/benefit_value_row.html" with benefit=benefits.O3 icon='cloud' %}
+            {% include "treemap/partials/benefit_value_row.html" with benefit=benefits.NO2 icon='beaker' %}
+            {% include "treemap/partials/benefit_value_row.html" with benefit=benefits.SO2 icon='air' %}
+            {% include "treemap/partials/benefit_value_row.html" with benefit=benefits.PM25 icon='light-down' %}
 
         {% with resource_benefits=benefits.resource %}
             {% if not hide_summary and request.instance.has_resources and resource_benefits %}
@@ -31,16 +28,8 @@
 
         {% if not hide_summary and not hidecounts %}
             <div class="benefit-tree-count">
-                {% with has_resources=request.instance.has_resources plot_basis=basis.plot resource_basis=basis.resource %}
-                    {% blocktrans with used=plot_basis.n_objects_used total=plot_basis.n_total %}
-                        Based on {{ used }} out of {{ total }} total trees{% endblocktrans %}{% if not has_resources %}.{% endif %}
-                    {% if has_resources %}
-                        {% blocktrans with used=resource_basis.n_objects_used total=resource_basis.n_total resources=term.Resource.plural.lower %}
-                            and {{ used }} out of {{ total }} total {{ resources }}.
-                        {% endblocktrans %}
-                    {% endif %}
-                {% endwith %}
-
+                    {% blocktrans with total=total_trees used=used_trees %}
+                        Based on {{ used }} out of {{ total }} total trees{% endblocktrans %}.
             </div>
         {% endif %}
     </div>
