@@ -40,7 +40,7 @@ class Command(BaseCommand):
         parser.add_argument('file_path', type=str)
         parser.add_argument('instance_id', type=int)
         parser.add_argument(
-            '--import_species',
+            '--import-species',
             action='store_true',
             dest='import_species'
         )
@@ -83,13 +83,12 @@ def save_tree(row, user, instance_id):
     fmt = '%d.%m.%Y'
     updated_at = datetime.strptime(row[0], fmt)
     (x, y) = convert_coords(row)
-
+    geom = Point(x, y)
     height = float(row[6].replace(',', '.')) if row[6] else None
 
-    geom = Point(x, y)
     exists = Plot.objects.filter(instance_id=instance_id, geom=geom).exists()
     if not exists:
-        species = Species.objects.get(species=row[3])
+        species = Species.objects.get(species=row[3], instance_id=instance_id)
         trunk_diam = get_summed_trunk_diam(row[5])
         plot = Plot(instance_id=instance_id, updated_at=updated_at, geom=geom)
         plot.save_with_system_user_bypass_auth()
