@@ -58,15 +58,15 @@ class Command(BaseCommand):
             import_trees(data, instance_id)
 
 
-def get_area(diameter):
-    return float(math.pi * (diameter / 2.0) ** 2)
+def get_area(circ):
+    return math.pi * (circ / (2.0 * math.pi)) ** 2
 
 
-def get_summed_trunk_diam(diameters_str):
-    if not diameters_str:
+def get_summed_trunk_diam(circumferences_str):
+    if not circumferences_str:
         return None
-    diam_list = map(float, diameters_str.split(', '))
-    area = sum(get_area(diam) for diam in diam_list)
+    circ_list = map(float, circumferences_str.split(', '))
+    area = sum(get_area(circ) for circ in circ_list)
     return float(math.sqrt(area / math.pi) * 2)
 
 
@@ -85,11 +85,11 @@ def save_tree(row, user, instance_id):
     (x, y) = convert_coords(row)
     geom = Point(x, y)
     height = float(row[6].replace(',', '.')) if row[6] else None
+    trunk_diam = get_summed_trunk_diam(row[5])
 
     exists = Plot.objects.filter(instance_id=instance_id, geom=geom).exists()
     if not exists:
         species = Species.objects.get(species=row[3], instance_id=instance_id)
-        trunk_diam = get_summed_trunk_diam(row[5])
         plot = Plot(instance_id=instance_id, updated_at=updated_at, geom=geom)
         plot.save_with_system_user_bypass_auth()
         tree = Tree(
