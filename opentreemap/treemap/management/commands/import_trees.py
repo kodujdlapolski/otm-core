@@ -11,6 +11,8 @@ from django.core.management.base import BaseCommand
 
 from treemap.models import Species, Tree, User, Plot
 
+IMPORT_AS_USERNAME = 'super'
+
 
 class Command(BaseCommand):
     """
@@ -58,8 +60,11 @@ class Command(BaseCommand):
             import_trees(data, instance_id)
 
 
-def get_area(circ):
-    return math.pi * (circ / (2.0 * math.pi)) ** 2
+def get_area(circumference):
+    """
+    :circumference: of the single tree
+    """
+    return math.pi * (circumference / (2.0 * math.pi)) ** 2
 
 
 def get_summed_trunk_diam(circumferences_str):
@@ -132,6 +137,6 @@ def load_tree_data(file_path):
 
 
 def import_trees(data, instance_id):
-    user = User.objects.get(username='super')
+    user = User.objects.get(username=IMPORT_AS_USERNAME)
     for row in data:
         save_tree(row, user, instance_id)
