@@ -14,6 +14,7 @@ from django.http import Http404, HttpResponse
 from django.core.exceptions import ValidationError
 from django.db import connection
 from django.core import mail
+from django.template.loader import get_template
 
 from django.contrib.auth.models import AnonymousUser, Permission
 from django.contrib.contenttypes.models import ContentType
@@ -26,7 +27,7 @@ from treemap.udf import UserDefinedFieldDefinition
 from treemap.audit import (Audit, approve_or_reject_audit_and_apply,
                            add_default_permissions, AuthorizeException)
 from treemap.models import (Instance, Species, User, Plot, Tree, TreePhoto,
-                            InstanceUser, StaticPage, ITreeRegion)
+                            InstanceUser, StaticPage, ITreeRegion, Boundary)
 from treemap.routes import (root_settings_js, instance_settings_js,
                             instance_user_page)
 
@@ -36,13 +37,14 @@ from treemap.lib.tree import add_tree_photo_helper
 from treemap.lib.user import get_user_instances
 from treemap.views.misc import (public_instances_geojson, species_list,
                                 boundary_autocomplete, boundary_to_geojson,
-                                edits, compile_scss, static_page)
+                                edits, compile_scss, static_page,
+                                add_anonymous_boundary)
 from treemap.views.map_feature import (update_map_feature, delete_map_feature,
                                        rotate_map_feature_photo, plot_detail,
                                        delete_photo)
 from treemap.views.user import (user_audits, upload_user_photo, update_user,
                                 forgot_username, user, users)
-from treemap.views.photo import approve_or_reject_photos
+from manage_treemap.views.photo import approve_or_reject_photos
 from treemap.views.tree import delete_tree
 from treemap.tests import (ViewTestCase, make_instance, make_officer_user,
                            make_commander_user, make_apprentice_user,
@@ -51,7 +53,7 @@ from treemap.tests import (ViewTestCase, make_instance, make_officer_user,
                            set_read_permissions, make_tweaker_user,
                            make_plain_user, LocalMediaTestCase, media_dir,
                            make_instance_user, set_invisible_permissions,
-                           make_observer_role)
+                           make_observer_role, make_anonymous_boundary)
 from treemap.tests.base import OTMTestCase
 from treemap.tests.test_udfs import make_collection_udf
 
@@ -80,9 +82,7 @@ class StaticPageViewTest(ViewTestCase):
                                      instance=self.instance)
         self.staticPage.save()
 
-        p = Point(-8515941.0, 4953519.0)
-        self.otherInstance = Instance(name='i1', geo_rev=0, center=p)
-        self.otherInstance.seed_with_dummy_default_role()
+        self.otherInstance = make_instance()
 
     def test_can_get_page(self):
         # Note- case insensitive match
@@ -102,9 +102,11 @@ class StaticPageViewTest(ViewTestCase):
     def test_can_get_pre_defined_page(self):
         # Note- case insensitive match
         rslt = static_page(None, self.instance, "AbOUt")
+        content = get_template(StaticPage.DEFAULT_CONTENT['about']).render()
 
         self.assertIsNotNone(rslt['content'])
         self.assertIsNotNone(rslt['title'])
+        self.assertEqual(len(rslt['content']), len(content))
 
 
 class BoundaryViewTest(ViewTestCase):
@@ -145,7 +147,8 @@ class BoundaryViewTest(ViewTestCase):
             js_boundary['sortOrder'] = boundary.sort_order
 
     def test_boundary_to_geojson_view(self):
-        boundary = make_simple_boundary("Hello, World", 1)
+        distance = 1.0
+        boundary = make_simple_boundary("Hello, World", distance)
         self.instance.boundaries.add(boundary)
         self.instance.save()
         response = boundary_to_geojson(
@@ -155,6 +158,48 @@ class BoundaryViewTest(ViewTestCase):
 
         self.assertEqual(response.content,
                          boundary.geom.transform(4326, clone=True).geojson)
+
+        self._assert_response_is_srid_3857_distance(response, distance)
+
+    def test_anonymous_boundary_to_geojson_view(self):
+        distance = 1.0
+        boundary = make_anonymous_boundary(distance)
+        # Anonymous boundaries do not get added to instance.boundaries
+        response = boundary_to_geojson(
+            make_request(),
+            self.instance,
+            boundary.pk)
+
+        self.assertEqual(response.content,
+                         boundary.geom.transform(4326, clone=True).geojson)
+
+        self._assert_response_is_srid_3857_distance(response, distance)
+
+    def test_add_anonymous_boundary_view(self):
+        distance3857 = 1.0
+        point3857 = Point(distance3857, distance3857, srid=3857)
+        point4326 = point3857.transform(4326, clone=True)
+        n = point4326.get_x()
+        request_dict = {
+            'polygon': [[n, n], [n, n+1], [n+1, n+1], [n+1, n], [n, n]]
+        }
+        content = add_anonymous_boundary(make_request(
+            body=json.dumps(request_dict)))
+
+        self.assertIn('id', content)
+        boundary_id = content['id']
+        anonymous_boundary = Boundary.all_objects.get(pk=boundary_id)
+
+        gjs_response = boundary_to_geojson(
+            make_request(),
+            self.instance,
+            boundary_id)
+
+        self.assertEqual(gjs_response.content,
+                         anonymous_boundary.geom.transform(
+                             4326, clone=True).geojson)
+
+        self._assert_response_is_srid_3857_distance(gjs_response, distance3857)
 
     def test_autocomplete_view(self):
         response = boundary_autocomplete(make_request(), self.instance)
@@ -176,6 +221,15 @@ class BoundaryViewTest(ViewTestCase):
             self.instance)
 
         self.assertEqual(response, self.test_boundary_hashes[0:2])
+
+    def _assert_response_is_srid_3857_distance(self, response, distance):
+        upper_left_3857 = Point(distance, distance, srid=3857)
+        upper_left_4326 = upper_left_3857.transform(4326, clone=True)
+        json_response = json.loads(response.content)
+        response_upper_left = Point(json_response['coordinates'][0][0][0],
+                                    srid=4326)
+        self.assertAlmostEqual(response_upper_left.get_x(),
+                               upper_left_4326.get_x())
 
 
 class TreePhotoTestCase(LocalMediaTestCase):
@@ -268,8 +322,8 @@ class TreePhotoRotationTest(TreePhotoTestCase):
         self.assertNotEqual(old_photo.image.width, old_photo.image.height)
 
         context = rotate_map_feature_photo(
-            make_request({'degrees': '-90'}, user=self.user), self.instance,
-            self.plot.pk, old_photo.pk)
+            make_request({'degrees': '-90'}, user=self.user, method='POST'),
+            self.instance, self.plot.pk, old_photo.pk)
 
         rotated_photo = TreePhoto.objects.get(pk=old_photo.pk)
 
@@ -542,13 +596,21 @@ class PlotUpdateTest(OTMTestCase):
         set_write_permissions(self.instance, self.user,
                               'Plot', ['udf:Test choice', 'udf:Test col'])
         set_write_permissions(self.instance, self.user,
-                              'Tree', ['udf:Test col'])
+                              'Tree', ['udf:Test choice', 'udf:Test col'])
 
         self.choice_field = UserDefinedFieldDefinition.objects.create(
             instance=self.instance,
             model_type='Plot',
             datatype=json.dumps({'type': 'choice',
                                  'choices': ['a', 'b', 'c']}),
+            iscollection=False,
+            name='Test choice')
+
+        self.tree_choice_field = UserDefinedFieldDefinition.objects.create(
+            instance=self.instance,
+            model_type='Tree',
+            datatype=json.dumps({'type': 'choice',
+                                 'choices': ['foo', 'bar', 'baz']}),
             iscollection=False,
             name='Test choice')
 
@@ -612,6 +674,60 @@ class PlotUpdateTest(OTMTestCase):
 
         created_plot_update.current_tree().delete_with_user(self.user)
         created_plot_update.delete_with_user(self.user)
+
+    def test_does_not_create_tree_if_tree_field_value_is_an_empty_string(self):
+        plot = Plot(instance=self.instance)
+
+        update = {'plot.geom': {'x': 4, 'y': 9},
+                  'plot.readonly': False,
+                  'tree.udf:Test choice': ''}
+
+        created_plot, __ = update_map_feature(update, self.user, plot)
+
+        created_plot_update = Plot.objects.get(pk=created_plot.pk)
+        self.assertIsNone(created_plot_update.current_tree())
+
+        created_plot_update.delete_with_user(self.user)
+
+    def test_does_create_tree_when_one_tree_field_is_non_empty(self):
+        plot = Plot(instance=self.instance)
+
+        update = {'plot.geom': {'x': 4, 'y': 9},
+                  'plot.readonly': False,
+                  'tree.udf:Test choice': '',
+                  'tree.diameter': 7}
+
+        created_plot, updated_tree = update_map_feature(update, self.user,
+                                                        plot)
+
+        created_plot_update = Plot.objects.get(pk=created_plot.pk)
+        self.assertIsNotNone(created_plot_update.current_tree())
+        self.assertEqual(None, updated_tree.udfs['Test choice'])
+        self.assertEqual(7, updated_tree.diameter)
+
+        created_plot_update.current_tree().delete_with_user(self.user)
+        created_plot_update.delete_with_user(self.user)
+
+    def test_does_clear_field_if_tree_already_exists(self):
+        tree = Tree(plot=self.plot, instance=self.instance)
+        tree.udfs['Test choice'] = 'bar'
+        tree.save_with_user(self.user)
+
+        tree.refresh_from_db()
+        self.assertEqual('bar', tree.udfs['Test choice'])
+
+        update = {'plot.geom': {'x': 4, 'y': 9},
+                  'plot.readonly': False,
+                  'tree.udf:Test choice': None}
+
+        updated_plot, created_tree = update_map_feature(update, self.user,
+                                                        self.plot)
+
+        self.assertIsNotNone(created_tree)
+        self.assertEqual(None, created_tree.udfs['Test choice'])
+
+        updated_plot.current_tree().delete_with_user(self.user)
+        updated_plot.delete_with_user(self.user)
 
     def test_invalid_udf_name_fails(self):
         update = {'plot.udf:INVaLiD UTF': 'z'}
@@ -947,11 +1063,11 @@ class PlotViewProgressTest(PlotViewTestCase):
         wo_tree_context = self.get_plot_context(self.plot_wo_tree)
         w_tree_context = self.get_plot_context(self.plot_w_tree)
 
-        self.assertTrue(len(wo_tree_context['progress_messages'])
-                        > len(w_tree_context['progress_messages']))
+        self.assertTrue(len(wo_tree_context['progress_messages']) >
+                        len(w_tree_context['progress_messages']))
         # Adding a tree without and details does not add progress
-        self.assertTrue(wo_tree_context['progress_percent']
-                        == w_tree_context['progress_percent'])
+        self.assertTrue(wo_tree_context['progress_percent'] ==
+                        w_tree_context['progress_percent'])
 
     def test_progress_increases_when_diameter_is_added(self):
         tree = self.plot_w_tree.current_tree()
@@ -1595,6 +1711,7 @@ class SpeciesViewTests(ViewTestCase):
             js_species['genus'] = species.genus
             js_species['species'] = species.species
             js_species['cultivar'] = species.cultivar
+            js_species['other_part_of_name'] = species.other_part_of_name
 
     def test_get_species_list(self):
         self.assertEquals(species_list(make_request(), self.instance),
@@ -1880,7 +1997,8 @@ class ForgotUsernameTests(ViewTestCase):
         self.user = make_plain_user('joe')
 
     def test_sends_email_for_existing_user(self):
-        resp = forgot_username(make_request({'email': self.user.email}))
+        resp = forgot_username(make_request({'email': self.user.email},
+                                            method='POST'))
 
         self.assertEquals(resp, {'email': self.user.email})
 
@@ -1888,7 +2006,8 @@ class ForgotUsernameTests(ViewTestCase):
         self.assertIn(self.user.username, mail.outbox[0].body)
 
     def test_no_email_if_doesnt_exist(self):
-        resp = forgot_username(make_request({'email': 'doesnt@exist.co.uk'}))
+        resp = forgot_username(make_request({'email': 'doesnt@exist.co.uk'},
+                                            method='POST'))
 
         self.assertEquals(resp, {'email': 'doesnt@exist.co.uk'})
 
@@ -1964,7 +2083,6 @@ class InstanceListTest(OTMTestCase):
         self.assertIn('properties', instance_dict)
 
         self.assertEqual(self.i1.name, instance_dict['properties']['name'])
-        self.assertEqual(1, instance_dict['properties']['tree_count'])
         self.assertEqual(2, instance_dict['properties']['plot_count'])
 
     def test_instance_list_only_public(self):

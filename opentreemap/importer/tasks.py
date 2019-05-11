@@ -5,7 +5,8 @@ from __future__ import division
 
 import json
 
-from celery import task, chord
+from celery import shared_task, chord
+from celery.result import GroupResult
 from django.core.exceptions import ObjectDoesNotExist
 from django.conf import settings
 from django.db import transaction
@@ -23,7 +24,8 @@ def _create_rows_for_event(ie, csv_file):
     # so we can show progress. Caller does manual cleanup if necessary.
     reader = utf8_file_to_csv_dictreader(csv_file)
 
-    field_names = [f.strip() for f in reader.fieldnames]
+    field_names = [f.strip().decode('utf-8') for f in reader.fieldnames
+                   if f.strip().lower() not in ie.ignored_fields()]
     ie.field_order = json.dumps(field_names)
     ie.save()
 
@@ -51,20 +53,22 @@ def _create_rows(ie, reader):
     idx = 0
 
     for row in reader:
-        data = json.dumps(clean_row_data(row))
-        rows.append(RowModel(data=data, import_event=ie, idx=idx))
+        data = clean_row_data(row)
+        if len(filter(None, data.values())) > 0:  # skip blank rows
+            data = json.dumps(data)
+            rows.append(RowModel(data=data, import_event=ie, idx=idx))
 
-        idx += 1
-        if ((int(idx / settings.IMPORT_BATCH_SIZE) *
-             settings.IMPORT_BATCH_SIZE == idx)):
-            RowModel.objects.bulk_create(rows)
-            rows = []
+            idx += 1
+            if ((int(idx / settings.IMPORT_BATCH_SIZE) *
+                 settings.IMPORT_BATCH_SIZE == idx)):
+                RowModel.objects.bulk_create(rows)
+                rows = []
 
     if rows:
         RowModel.objects.bulk_create(rows)  # create final partial block
 
 
-@task()
+@shared_task()
 def run_import_event_validation(import_type, import_event_id, file_obj):
     ie = _get_import_event(import_type, import_event_id)
 
@@ -96,10 +100,13 @@ def run_import_event_validation(import_type, import_event_id, file_obj):
         final_task = _finalize_validation.si(import_type, import_event_id)
 
         async_result = chord(validation_tasks, final_task).delay()
-        group_result = async_result.parent
-        if group_result:  # Has value None when run in unit tests
-            group_result.save()
-            ie.task_id = group_result.id
+        async_result_parent = async_result.parent
+        if async_result_parent:  # Has value None when run in unit tests
+            # Celery 4 converts a chord with only one task in the head into
+            # a simple chain, which does not have a savable parent GroupResult
+            if isinstance(async_result_parent, GroupResult):
+                async_result_parent.save()
+            ie.task_id = async_result_parent.id
 
         _assure_status_is_at_least_verifying(ie)
 
@@ -128,7 +135,7 @@ def _assure_status_is_at_least_verifying(ie):
         ie.update_progress_timestamp_and_save()
 
 
-@task()
+@shared_task()
 def _validate_rows(import_type, import_event_id, start_row_id):
     ie = _get_import_event(import_type, import_event_id)
     rows = ie.rows()[start_row_id:(start_row_id+settings.IMPORT_BATCH_SIZE)]
@@ -137,7 +144,7 @@ def _validate_rows(import_type, import_event_id, start_row_id):
     ie.update_progress_timestamp_and_save()
 
 
-@task()
+@shared_task()
 def _finalize_validation(import_type, import_event_id):
     ie = _get_import_event(import_type, import_event_id)
 
@@ -151,7 +158,7 @@ def _finalize_validation(import_type, import_event_id):
     ie.mark_finished_and_save()
 
 
-@task()
+@shared_task()
 def commit_import_event(import_type, import_event_id):
     ie = _get_import_event(import_type, import_event_id)
 
@@ -171,7 +178,7 @@ def commit_import_event(import_type, import_event_id):
         ie.save()
 
 
-@task(rate_limit=settings.IMPORT_COMMIT_RATE_LIMIT)
+@shared_task(rate_limit=settings.IMPORT_COMMIT_RATE_LIMIT)
 def _commit_rows(import_type, import_event_id, i):
     ie = _get_import_event(import_type, import_event_id)
 
@@ -180,7 +187,7 @@ def _commit_rows(import_type, import_event_id, i):
     ie.update_progress_timestamp_and_save()
 
 
-@task()
+@shared_task()
 def _finalize_commit(import_type, import_event_id):
     ie = _get_import_event(import_type, import_event_id)
 
@@ -231,7 +238,7 @@ def _get_waiting_row_count(ie):
              .count()
 
 
-@task
+@shared_task
 def get_import_export(import_type, import_event_id):
     ie = _get_import_event(import_type, import_event_id)
 

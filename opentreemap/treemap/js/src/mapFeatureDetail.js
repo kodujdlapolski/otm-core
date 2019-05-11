@@ -42,6 +42,7 @@ var dom = {
             edit: '#edit-location',
             cancel: '#cancel-edit-location',
         },
+        polygonAreaDisplay: '.js-area'
     };
 
 function init() {
@@ -90,7 +91,6 @@ function init() {
         shouldBeInEditModeStream: shouldBeInEditModeStream,
         errorCallback: alerts.errorCallback,
         onSaveBefore: function (data) { currentMover.onSaveBefore(data); },
-        onSaveAfter: function (data) { currentMover.onSaveAfter(data); },
         dontUpdateOnSaveOk: true
     });
 
@@ -169,6 +169,7 @@ function init() {
 
     if (window.otm.mapFeature.isEditablePolygon) {
         currentMover = geometryMover.polygonMover(moverOptions);
+        currentMover.editor.areaStream.onValue(showUpdatedArea);
     } else {
         plotMarker.init(mapManager.map);
         plotMarker.useTreeIcon(window.otm.mapFeature.useTreeIcon);
@@ -185,7 +186,7 @@ function init() {
     clickedIdStream
         .filter(BU.not, window.otm.mapFeature.featureId)
         .map(_.partialRight(U.appendSegmentToUrl, detailUrlPrefix, false))
-        .filter(R.not(currentMover.isEnabled))
+        .filter(R.complement(currentMover.isEnabled))
         .onValue(_.bind(window.location.assign, window.location));
 
     if (config.instance.basemap.type === 'google') {
@@ -197,10 +198,14 @@ function init() {
             location: window.otm.mapFeature.location.point
         });
         form.saveOkStream
-            .map('.formData')
-            .map(BU.getValueForKey('plot.geom'))
-            .filter(BU.isDefined)
-            .onValue(panorama.update);
+            .onValue(function () {
+                // If location is an array, we are editing a polygonal map
+                // feature. The page triggers a full postback after editing a
+                // polygon map feature.
+                if (!_.isArray(currentMover.location)) {
+                    panorama.update(currentMover.location);
+                }
+            });
     }
 
     handleFavoriteClick();
@@ -255,6 +260,10 @@ function handleFavoriteClick() {
             e.preventDefault();
         });
     }
+}
+
+function showUpdatedArea(area) {
+    $(dom.polygonAreaDisplay).html(area);
 }
 
 init();

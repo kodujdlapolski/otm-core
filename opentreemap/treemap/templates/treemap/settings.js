@@ -17,7 +17,7 @@ otm.settings.urls = Object.freeze({
     'displayQueryArgumentName': 'show'
 });
 
-{% if not settings.TILE_HOST = None %}
+{% if not settings.TILE_HOST == None %}
     otm.settings.tileHost = "{{ settings.TILE_HOST }}";
 {% endif %}
 
@@ -27,7 +27,7 @@ otm.settings.urls = Object.freeze({
     otm.settings.loggedIn = false;
 {% endif %}
 
-otm.settings.loginUrl = "{% url 'django.contrib.auth.views.login' %}?next=";
+otm.settings.loginUrl = "{% url 'login' %}?next=";
 
 otm.settings.staticUrl = '{{ STATIC_URL }}';
 
@@ -35,7 +35,7 @@ otm.settings.bing_api_key = '{{ BING_API_KEY }}';
 
 otm.settings.geocoder = Object.freeze({
     maxLocations: 20,
-    errorString: '{% trans "That address was not found near this map. You may need to include a city and state." %}',
+    errorString: '{% trans "Location not found." %}',
     reverseGeocoderErrorString: '{% trans "Unable to find an address for the location" %}',
     reverseGeocodeDistance: 200, // Meters
     threshold: 80
@@ -45,10 +45,28 @@ otm.settings.trans = Object.freeze({
     noStreetViewText: '{% trans "Could not load street view for this location" %}',
     treeDetails: '{% trans "Tree Details" %}',
     resourceDetails: '{{ term.Resource.singular }}{% trans " Details" %}',
-    {# this has to be broken into two sections because window.onbeforeunload has a default but confirm() does not #}
+    //{# this has to be broken into two sections because window.onbeforeunload has a default but confirm() does not #}
     exitWarning: '{% trans "You have begun entering data. Any unsaved changes will be lost." %}',
     exitQuestion: '{% trans "Are you sure you want to continue?" %}',
-    fileExceedsMaximumFileSize: '{% trans "{0} exceeds the maximum file size of {1}" %}'
+    fileExceedsMaximumFileSize: '{% trans "{0} exceeds the maximum file size of {1}" %}',
+    tooltipsForDrawArea: {
+        start: {
+            message: '{% trans "Click the first corner of your search area" %}',
+            kicker: '{% trans "ESC to cancel" %}'
+        },
+        cont: {
+            message: '{% trans "Click to add a corner" %}'
+        },
+        end: {
+            message: '{% trans "Click to add a corner" %}',
+            kicker: '{% trans "Click first corner to finish" %}'
+        }
+    },
+    tooltipForEditArea: [
+        '{% trans "Drag a corner to move it." %}',
+        '{% trans "Click a corner to delete it." %}',
+        '{% trans "Enter when done. ESC to cancel." %}'
+    ]
 });
 
 otm.settings.errorMessages = Object.freeze({

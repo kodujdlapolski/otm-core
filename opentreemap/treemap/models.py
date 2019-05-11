@@ -9,6 +9,7 @@ import re
 from copy import copy
 
 from django.conf import settings
+from django.contrib.gis.geos import Point, MultiPolygon
 from django.core.mail import send_mail
 from django.core.exceptions import (ValidationError, MultipleObjectsReturned,
                                     ObjectDoesNotExist)
@@ -22,16 +23,17 @@ from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 from django.contrib.auth.models import (UserManager, AbstractBaseUser,
                                         PermissionsMixin)
+from django.template.loader import get_template
 
 from treemap.species.codes import ITREE_REGIONS, get_itree_code
 from treemap.audit import Auditable, Role, Dictable, Audit, PendingAuditable
 # Import this even though it's not referenced, so Django can find it
-from treemap.audit import FieldPermission  # NOQA
+from treemap.audit import UserTrackable, FieldPermission  # NOQA
 from treemap.util import leaf_models_of_class, to_object_name
 from treemap.decorators import classproperty
 from treemap.images import save_uploaded_image
 from treemap.units import Convertible
-from treemap.udf import UDFModel, GeoHStoreUDFManager
+from treemap.udf import UDFModel
 from treemap.instance import Instance
 from treemap.lib.object_caches import invalidate_adjuncts
 
@@ -72,6 +74,12 @@ class StaticPage(models.Model):
     name = models.CharField(max_length=100)
     content = models.TextField()
 
+    DEFAULT_CONTENT = {
+        'resources': 'treemap/partials/Resources.html',
+        'about': 'treemap/partials/About.html',
+        'faq': 'treemap/partials/FAQ.html'
+    }
+
     @staticmethod
     def built_in_names():
         return ['Resources', 'FAQ', 'About', 'Partners']
@@ -94,9 +102,15 @@ class StaticPage(models.Model):
             elif only_create_built_ins:
                 raise Http404('Static page does not exist')
 
-            static_page = StaticPage(
-                instance=instance, name=page_name,
-                content=_('There is no content for this page yet.'))
+            if page_name.lower() in StaticPage.DEFAULT_CONTENT:
+                template = get_template(
+                    StaticPage.DEFAULT_CONTENT[page_name.lower()])
+                content = template.render()
+            else:
+                content = 'There is no content for this page yet.'
+
+            static_page = StaticPage(instance=instance, name=page_name,
+                                     content=content)
         return static_page
 
     @staticmethod
@@ -316,6 +330,11 @@ class User(AbstractUniqueEmailUser, Auditable):
     make_info_public = models.BooleanField(default=False)
     allow_email_contact = models.BooleanField(default=False)
 
+    def __init__(self, *args, **kwargs):
+        super(User, self).__init__(*args, **kwargs)
+
+        self.populate_previous_state()
+
     @classmethod
     def system_user(clazz):
         if not User._system_user:
@@ -377,8 +396,8 @@ class User(AbstractUniqueEmailUser, Auditable):
         # If the user has no instance user yet, we need to provide a default so
         # that template filters can determine whether that user can perform an
         # action that will make them into an instance user
-        if (instance_user is None
-           and instance.feature_enabled('auto_add_instance_user')):
+        if (instance_user is None and
+           instance.feature_enabled('auto_add_instance_user')):
             return InstanceUser(user=self,
                                 instance=instance,
                                 role=instance.default_role)
@@ -396,6 +415,8 @@ class User(AbstractUniqueEmailUser, Auditable):
         return reputation
 
     def clean(self):
+        super(User, self).clean()
+
         if re.search('\\s', self.username):
             raise ValidationError(_('Cannot have spaces in a username'))
 
@@ -409,7 +430,7 @@ class User(AbstractUniqueEmailUser, Auditable):
         self.save_with_user(system_user, *args, **kwargs)
 
 
-class Species(UDFModel, PendingAuditable):
+class Species(PendingAuditable, models.Model):
     """
     http://plants.usda.gov/adv_search.html
     """
@@ -417,7 +438,7 @@ class Species(UDFModel, PendingAuditable):
     DEFAULT_MAX_DIAMETER = 200
     DEFAULT_MAX_HEIGHT = 800
 
-    ### Base required info
+    # Base required info
     instance = models.ForeignKey(Instance)
     # ``otm_code`` is the key used to link this instance
     # species row to a cannonical species. An otm_code
@@ -432,7 +453,7 @@ class Species(UDFModel, PendingAuditable):
     other_part_of_name = models.CharField(max_length=255, blank=True,
                                           verbose_name='Other Part of Name')
 
-    ### From original OTM (some renamed) ###
+    # From original OTM (some renamed) ###
     is_native = models.NullBooleanField(verbose_name='Native to Region')
     flowering_period = models.CharField(max_length=255, blank=True,
                                         verbose_name='Flowering Period')
@@ -449,7 +470,7 @@ class Species(UDFModel, PendingAuditable):
     plant_guide_url = models.URLField(max_length=255, blank=True,
                                       verbose_name='Plant Guide URL')
 
-    ### Used for validation
+    # Used for validation
     max_diameter = models.IntegerField(default=DEFAULT_MAX_DIAMETER,
                                        verbose_name='Max Diameter')
     max_height = models.IntegerField(default=DEFAULT_MAX_HEIGHT,
@@ -459,32 +480,62 @@ class Species(UDFModel, PendingAuditable):
     updated_at = models.DateTimeField(  # TODO: remove null=True
         null=True, auto_now=True, editable=False, db_index=True)
 
-    objects = GeoHStoreUDFManager()
+    objects = models.GeoManager()
+
+    def __init__(self, *args, **kwargs):
+        super(Species, self).__init__(*args, **kwargs)
+        self.populate_previous_state()
 
     @property
     def display_name(self):
         return "%s [%s]" % (self.common_name, self.scientific_name)
 
     @classmethod
-    def get_scientific_name(clazz, genus, species, cultivar):
+    def get_scientific_name(clz, genus, species, cultivar, other_part_of_name):
         name = genus
         if species:
             name += " " + species
+        if other_part_of_name:
+            name += " " + other_part_of_name
         if cultivar:
             name += " '%s'" % cultivar
         return name
 
     @property
     def scientific_name(self):
-        return Species.get_scientific_name(self.genus,
-                                           self.species,
-                                           self.cultivar)
+        return Species.get_scientific_name(
+            self.genus, self.species, self.cultivar, self.other_part_of_name)
 
     def dict(self):
         props = self.as_dict()
         props['scientific_name'] = self.scientific_name
 
         return props
+
+    @classmethod
+    def get_by_code(cls, instance, otm_code, region_code):
+        """
+        Get a Species with the specified otm_code in the specified instance. If
+        a matching Species does not exists, attempt to find and
+        ITreeCodeOverride that has a itree_code matching the specified otm_code
+        in the specified region.
+        """
+        species = Species.objects.filter(instance=instance, otm_code=otm_code)
+        if species.exists():
+            return species[0]
+        else:
+            species_ids = \
+                Species.objects.filter(instance=instance).values('pk')
+            region = ITreeRegion.objects.get(code=region_code)
+            itree_code = get_itree_code(region_code, otm_code)
+            overrides = ITreeCodeOverride.objects.filter(
+                itree_code=itree_code,
+                region=region,
+                instance_species_id__in=species_ids)
+            if overrides.exists():
+                return overrides[0].instance_species
+            else:
+                return None
 
     def get_itree_code(self, region_code=None):
         if not region_code:
@@ -523,6 +574,8 @@ class InstanceUser(Auditable, models.Model):
     def __init__(self, *args, **kwargs):
         super(InstanceUser, self).__init__(*args, **kwargs)
         self._do_not_track |= self.do_not_track
+
+        self.populate_previous_state()
 
     class Meta:
         unique_together = ('instance', 'user',)
@@ -577,7 +630,7 @@ class MapFeature(Convertible, UDFModel, PendingAuditable):
     updated_by = models.ForeignKey(User, null=True, blank=True,
                                    verbose_name=_("Last Updated By"))
 
-    objects = GeoHStoreUDFManager()
+    objects = models.GeoManager()
 
     # subclass responsibilities
     area_field_name = None
@@ -622,6 +675,12 @@ class MapFeature(Convertible, UDFModel, PendingAuditable):
     @classproperty
     def geom_field_name(cls):
         return "%s.geom" % to_object_name(cls.map_feature_type)
+
+    @property
+    def latlon(self):
+        latlon = Point(self.geom.x, self.geom.y, srid=3857)
+        latlon.transform(4326)
+        return latlon
 
     @property
     def is_plot(self):
@@ -761,6 +820,11 @@ class MapFeature(Convertible, UDFModel, PendingAuditable):
             tree_hashes = [t.hash for t in self.plot.tree_set.all()]
             string_to_hash += "," + ",".join(tree_hashes)
 
+        # Need to include nearby features in the hash, as they are in the
+        # detail sidebar & popup.
+        for feature in self.nearby_map_features():
+            string_to_hash += "," + str(feature.pk)
+
         return hashlib.md5(string_to_hash).hexdigest()
 
     def title(self):
@@ -822,6 +886,17 @@ class MapFeature(Convertible, UDFModel, PendingAuditable):
             return self.current_tree()
         else:
             return None
+
+    def nearby_map_features(self, distance_in_meters=None):
+        if distance_in_meters is None:
+            distance_in_meters = settings.NEARBY_TREE_DISTANCE
+
+        distance_filter = MapFeature.objects.filter(
+            geom__distance_lte=(self.geom, D(m=distance_in_meters)))
+
+        return distance_filter\
+            .filter(instance=self.instance)\
+            .exclude(pk=self.pk)
 
     def __unicode__(self):
         geom = getattr(self, 'geom', None)
@@ -898,7 +973,7 @@ class Plot(MapFeature, ValidationMixin):
     owner_orig_id = models.CharField(max_length=255, null=True, blank=True,
                                      verbose_name=_("Custom ID"))
 
-    objects = GeoHStoreUDFManager()
+    objects = models.GeoManager()
     is_editable = True
 
     _terminology = {'singular': _('Planting Site'),
@@ -942,15 +1017,8 @@ class Plot(MapFeature, ValidationMixin):
         return TreeBenefitsCalculator()
 
     def nearby_plots(self, distance_in_meters=None):
-        if distance_in_meters is None:
-            distance_in_meters = settings.NEARBY_TREE_DISTANCE
-
-        distance_filter = Plot.objects.filter(
-            geom__distance_lte=(self.geom, D(m=distance_in_meters)))
-
-        return distance_filter\
-            .filter(instance=self.instance)\
-            .exclude(pk=self.pk)
+        return self.nearby_map_features(distance_in_meters)\
+            .filter(feature_type='Plot')
 
     def get_tree_history(self):
         """
@@ -1022,7 +1090,7 @@ class Tree(Convertible, UDFModel, PendingAuditable, ValidationMixin):
 
     users_can_delete_own_creations = True
 
-    objects = GeoHStoreUDFManager()
+    objects = models.GeoManager()
 
     _stewardship_choices = ['Watered',
                             'Pruned',
@@ -1075,6 +1143,7 @@ class Tree(Convertible, UDFModel, PendingAuditable, ValidationMixin):
 
     def __init__(self, *args, **kwargs):
         super(Tree, self).__init__(*args, **kwargs)
+        self.populate_previous_state()
 
     def dict(self):
         props = self.as_dict()
@@ -1215,7 +1284,7 @@ class MapFeaturePhoto(models.Model, PendingAuditable, Convertible):
         if thing is None:
             return None
 
-        field, __, __, __ = MapFeaturePhoto._meta.get_field_by_name(field)
+        field = MapFeaturePhoto._meta.get_field(field)
 
         saved_rep = field.pre_save(self, thing)
         return str(saved_rep)
@@ -1339,6 +1408,15 @@ class TreePhoto(MapFeaturePhoto):
         return data
 
 
+class BoundaryManager(models.GeoManager):
+    """
+    By default, exclude anonymous boundaries from queries.
+    """
+    def get_queryset(self):
+        return super(BoundaryManager, self).get_queryset().exclude(
+            name='', category='', searchable=False)
+
+
 class Boundary(models.Model):
     """
     A plot can belong to many different boundary zones. Boundary zones are
@@ -1366,10 +1444,28 @@ class Boundary(models.Model):
     canopy_percent = models.FloatField(null=True)
     searchable = models.BooleanField(default=True)
 
-    objects = models.GeoManager()
+    objects = BoundaryManager()
+    # Allows access to anonymous boundaries
+    all_objects = models.GeoManager()
 
     def __unicode__(self):
         return self.name
+
+    @classmethod
+    def anonymous(cls, polygon=None):
+        """
+        Given a polygon, create an anonymous boundary and return it.
+        """
+        if polygon is None:
+            raise ValidationError(_('Cannot create an anonymous boundary '
+                                    'without geometry'))
+        b = Boundary()
+        b.name = ''
+        b.category = ''
+        b.sort_order = 1
+        b.searchable = False
+        b.geom = MultiPolygon(polygon)
+        return b
 
 
 class ITreeRegionAbstract(object):
@@ -1406,3 +1502,7 @@ class ITreeCodeOverride(models.Model, Auditable):
 
     class Meta:
         unique_together = ('instance_species', 'region',)
+
+    def __init__(self, *args, **kwargs):
+        super(ITreeCodeOverride, self).__init__(*args, **kwargs)
+        self.populate_previous_state()

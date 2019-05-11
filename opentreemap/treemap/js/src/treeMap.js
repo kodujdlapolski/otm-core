@@ -5,38 +5,26 @@ var $ = require('jquery'),
     Bootstrap = require('bootstrap'),  // for $(...).collapse()
     Bacon = require('baconjs'),
     url = require('url'),
-    addTreeModeName = require('treemap/lib/addTreeMode.js').name,
-    addResourceModeName = require('treemap/lib/addResourceMode.js').name,
+    addTreeModeName = require('treemap/mapPage/addTreeMode.js').name,
+    addResourceModeName = require('treemap/mapPage/addResourceMode.js').name,
     BU = require('treemap/lib/baconUtils.js'),
     buttonEnabler = require('treemap/lib/buttonEnabler.js'),
     MapPage = require('treemap/lib/mapPage.js'),
-    modes = require('treemap/lib/treeMapModes.js'),
+    modes = require('treemap/mapPage/modes.js'),
     Search = require('treemap/lib/search.js');
-
-function changeMode (modeOptions) {
-    var modeName = modeOptions.modeName,
-        type = modeOptions.modeType;
-
-    if (modeName === addTreeModeName) {
-        modes.activateAddTreeMode(false);
-    } else if (modeName === addResourceModeName) {
-        modes.activateAddResourceMode(false, type);
-    } else {
-        modes.activateBrowseTreesMode(false);
-    }
-}
 
 var mapPage = MapPage.init({
         domId: 'map',
         trackZoomLatLng: true,
         fillSearchBoundary: true,
-        saveSearchInUrl: true
+        saveSearchInUrl: true,
+        shouldUseLocationSearchUI: true
     }),
     mapManager = mapPage.mapManager,
 
     triggerSearchFromSidebar = new Bacon.Bus(),
 
-    ecoBenefitsSearchEvents =
+    searchEvents =
         Bacon.mergeAll(
             mapPage.builtSearchEvents,
             triggerSearchFromSidebar.map(mapPage.getMapStateSearch)
@@ -45,25 +33,46 @@ var mapPage = MapPage.init({
     modeChangeStream = mapPage.mapStateChangeStream
         .filter(BU.isPropertyDefined('modeName')),
 
-    completedEcobenefitsSearchStream = Search.init(
-        ecoBenefitsSearchEvents,
+    completedSearchStream = Search.init(
+        searchEvents,
         _.bind(mapManager.setFilter, mapManager));
 
 
-modeChangeStream.onValue(changeMode);
+modeChangeStream.onValue(function (modeOptions) {
+    // Mode was specified in the URL, e.g. because user clicked "Add a Tree" on
+    // a different page
+    var modeName = modeOptions.modeName,
+        mapFeatureType = modeOptions.modeType;
 
-var performAdd = function (e, addFn) {
+    if (modeName === addTreeModeName) {
+        modes.activateAddTreeMode();
+    } else if (modeName === addResourceModeName) {
+        modes.activateAddResourceMode({mapFeatureType: mapFeatureType});
+    } else {
+        modes.activateBrowseTreesMode();
+    }
+});
+
+$('[data-action="addtree"]').on('click', function(e) {
+    performAdd(e, modes.activateAddTreeMode);
+});
+
+$('[data-action="addresource"]').on('click', function(e) {
+    performAdd(e, modes.activateAddResourceMode);
+});
+
+var performAdd = function (e, activateTheMode) {
     var btn = e.target;
 
     if (!mapPage.embed) {
-        var type = $(btn).attr('data-class');
+        var mapFeatureType = $(btn).attr('data-class');
         e.preventDefault();
-        addFn(false, type);
+        activateTheMode({mapFeatureType: mapFeatureType});
     } else {
         var href = btn.href,
             parsedHref = url.parse(href, true),
             currentLocation = url.parse(location.href, true),
-            adjustedQuery = _.chain({})
+            adjustedQuery = _({})
                 .assign(currentLocation.query, parsedHref.query)
                 .omit('embed')
                 .value();
@@ -74,18 +83,10 @@ var performAdd = function (e, addFn) {
     }
 };
 
-$('[data-action="addtree"]').click(function(e) {
-    performAdd(e, modes.activateAddTreeMode);
-});
-
-$('[data-action="addresource"]').click(function(e) {
-    performAdd(e, modes.activateAddResourceMode);
-});
-
 buttonEnabler.run();
 
 modes.init(mapManager, triggerSearchFromSidebar, mapPage.embed,
-    completedEcobenefitsSearchStream);
+    completedSearchStream);
 
 // Read state from current URL, initializing
 // zoom/lat/long/search/mode/selection

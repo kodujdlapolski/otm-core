@@ -11,13 +11,10 @@ import tempfile
 import os
 import json
 
-from django.test.client import RequestFactory
-from django.test.runner import DiscoverRunner
 from django.conf import settings
 from django.db.models import Max
-from django.template import Template, RequestContext
-from django.http import HttpResponse
-from django.conf.urls import patterns
+from django.test.client import RequestFactory
+from django.test.runner import DiscoverRunner
 
 from django.contrib.gis.geos import Point, Polygon, MultiPolygon
 from django.contrib.auth.models import AnonymousUser, Permission
@@ -30,10 +27,8 @@ from treemap.audit import Authorizable, add_default_permissions
 from treemap.util import leaf_models_of_class
 from treemap.tests.base import OTMTestCase
 
-from djcelery.contrib.test_runner import CeleryTestSuiteRunner
 
-
-class OTM2TestRunner(CeleryTestSuiteRunner, DiscoverRunner):
+class OTM2TestRunner(DiscoverRunner):
 
     def run_tests(self, *args, **kwargs):
         logging.disable(logging.CRITICAL)
@@ -53,6 +48,12 @@ def make_simple_boundary(name, n=1):
     b.name = name
     b.category = "Unknown"
     b.sort_order = 1
+    b.save()
+    return b
+
+
+def make_anonymous_boundary(n=1):
+    b = Boundary.anonymous(make_simple_polygon(n))
     b.save()
     return b
 
@@ -355,9 +356,12 @@ def create_mock_system_user():
     User._system_user = system_user
 
 
-def make_request(params={}, user=None, instance=None,
+def make_request(params=None, user=None, instance=None,
                  method='GET', body=None, file=None,
                  path='hello/world'):
+    if params is None:
+        params = {}
+
     if user is None:
         user = AnonymousUser()
 
@@ -367,12 +371,14 @@ def make_request(params={}, user=None, instance=None,
         extra['wsgi.input'] = body_stream
         extra['CONTENT_LENGTH'] = len(body)
 
+    factory = RequestFactory()
     if file:
         post_data = {'file': file}
-        req = RequestFactory().post(path, post_data, **extra)
+        req = factory.post(path, post_data, **extra)
     else:
-        req = RequestFactory().get(path, params, **extra)
-        req.method = method
+        fns = dict(GET=factory.get, POST=factory.post, PUT=factory.put,
+                   DELETE=factory.delete)
+        req = fns[method](path, params, **extra)
 
     setattr(req, 'user', user)
 
@@ -439,27 +445,6 @@ class LocalMediaTestCase(OTMTestCase):
 
 
 class ViewTestCase(OTMTestCase):
-    def _add_global_url(self, url, view_fn):
-        """
-        Insert a new url into treemap for Client resolution
-        """
-        from opentreemap import urls
-        urls.urlpatterns += patterns(
-            '', (url, view_fn))
-
-    def _mock_request_with_template_string(self, template):
-        """
-        Create a new request that renders the given template
-        with a normal request context
-        """
-        def mock_request(request):
-            r = RequestContext(request)
-            tpl = Template(template)
-
-            return HttpResponse(tpl.render(r))
-
-        return mock_request
-
     def setUp(self):
         self.factory = RequestFactory()
         self.instance = make_instance()

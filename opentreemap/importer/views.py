@@ -12,8 +12,7 @@ from celery.result import GroupResult, AsyncResult
 
 from django.db import transaction
 from django.db.models import Q
-from django.shortcuts import get_object_or_404, render_to_response
-from django.template import RequestContext
+from django.shortcuts import get_object_or_404, render
 from django.core.paginator import Paginator, Page, EmptyPage
 from django.core.urlresolvers import reverse
 from django.http import HttpResponse, HttpResponseBadRequest
@@ -63,7 +62,7 @@ def start_import(request, instance):
     if not getattr(request, 'FILES'):
         return HttpResponseBadRequest("No attachment received")
 
-    import_type = request.REQUEST['type']
+    import_type = request.POST['type']
     if import_type == TreeImportEvent.import_type:
         table = TABLE_ACTIVE_TREES
         factors = {
@@ -199,8 +198,8 @@ def _get_table_context(instance, table_name, page_number):
 
 @transaction.atomic
 def merge_species(request, instance):
-    species_to_delete_id = request.REQUEST['species_to_delete']
-    species_to_replace_with_id = request.REQUEST['species_to_replace_with']
+    species_to_delete_id = request.POST['species_to_delete']
+    species_to_replace_with_id = request.POST['species_to_replace_with']
 
     species_to_delete = get_object_or_404(
         Species, instance=instance, pk=species_to_delete_id)
@@ -299,7 +298,7 @@ def show_import_status(request, instance, import_type, import_event_id):
 
         ctx = _get_status_panels(ie, instance, panel_name, page_number)
 
-    return render_to_response(template, ctx, RequestContext(request))
+    return render(request, template, context=ctx)
 
 
 def _get_tree_limit_context(ie):
@@ -314,10 +313,14 @@ def _get_tree_limit_context(ie):
     tree_count = MapFeature.objects.filter(instance=ie.instance).count()
     remaining_tree_limit = tree_limit - tree_count
 
-    added_site_q =\
-        Q(data__contains='"planting site id": ""') |\
+    plot_id_absent_q = \
+        Q(data__contains='"planting site id": ""') | \
         ~Q(data__contains='"planting site id"')
-    verified_added_q = Q(status=TreeImportRow.VERIFIED) & added_site_q
+    tree_id_absent_q = \
+        Q(data__contains='"tree id": ""') | \
+        ~Q(data__contains='"tree id"')
+    verified_added_q = \
+        Q(status=TreeImportRow.VERIFIED) & plot_id_absent_q & tree_id_absent_q
 
     verified_count = ie.rows()\
         .filter(verified_added_q)\
@@ -662,7 +665,7 @@ def solve(request, instance, import_event_id, row_index):
                            instance=instance)
     row = ie.rows().get(idx=row_index)
 
-    data = dict(json.loads(request.REQUEST['data']))
+    data = dict(json.loads(request.POST['data']))
     target_species = request.GET['species']
 
     # Strip off merge errors
@@ -778,6 +781,10 @@ def download_import_template(request, instance, import_type):
         filename = 'OpenTreeMap_Tree_Import_Template.csv'
         ie = TreeImportEvent(instance=instance)
         field_names = ie.ordered_legal_fields_title_case()
+
+    # Encoding the field names prevents an error when the field names have
+    # non-ASCII characters.
+    field_names = [field_name.encode('utf-8') for field_name in field_names]
 
     response = HttpResponse(content_type="text/csv")
     response["Content-Disposition"] = "attachment; filename=%s" % filename

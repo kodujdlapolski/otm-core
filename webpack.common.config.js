@@ -25,20 +25,22 @@ function getEntries() {
 }
 
 function getAliases() {
-    var dirs = glob.sync('opentreemap/*/js/src/lib/'),
+    var dirs = glob.sync('opentreemap/*/js/src/*/'),
         aliases = {};
-    dirs.forEach(function(dir) {
-        var app = dir.split(path.sep)[1];
-        aliases[app + '/lib'] = d(dir.slice(0, -1));
+    dirs.forEach(function(thePath) {
+        var parts = thePath.split(path.sep),
+            app = parts[1],
+            dir = parts[4],
+            alias = app + path.sep + dir,
+            target = thePath.slice(0, -1);
+        aliases[alias] = d(target);
     });
     return _.merge(aliases, shimmed);
 }
 
 var shimmed = {
-    leafletgoogle: d('assets/js/shim/leaflet.google.js'),
     leafletbing: d('assets/js/shim/leaflet.bing.js'),
     utfgrid: d('assets/js/shim/leaflet.utfgrid.js'),
-    leafletEditablePolyline: d('assets/js/shim/leaflet-editable-polyline.js'),
     typeahead: d('assets/js/shim/typeahead.jquery.js'),
     bootstrap: d('assets/js/shim/bootstrap.js'),
     jqueryFileUpload: d('assets/js/shim/jquery.fileupload.js'),
@@ -47,7 +49,6 @@ var shimmed = {
     ionRangeSlider: d('assets/js/shim/ion.rangeSlider.js'),
     "bootstrap-datepicker": d('assets/js/shim/bootstrap-datepicker.js'),
     "bootstrap-multiselect": d('assets/js/shim/bootstrap-multiselect.js'),
-    "bootstrap-slider": d('assets/js/shim/bootstrap-slider.js'),
     jscolor: d('assets/js/shim/jscolor.js')
 };
 
@@ -60,7 +61,7 @@ module.exports = {
     },
     module: {
         loaders: [{
-            include: [shimmed["bootstrap-datepicker"], shimmed["bootstrap-multiselect"], shimmed["bootstrap-slider"]],
+            include: [shimmed["bootstrap-datepicker"], shimmed["bootstrap-multiselect"]],
             loader: "imports?bootstrap"
         }, {
             test: /\.scss$/,
@@ -98,7 +99,7 @@ module.exports = {
             // Chunks are moved to the common bundle if they are used in 2 or more entry bundles
             minChunks: 2,
         }),
-        new ExtractTextPlugin('css/main.css', {allChunks: true}),
+        new ExtractTextPlugin('css/main-[chunkhash].css', {allChunks: true}),
         new BundleTracker({path: d('static'), filename: 'webpack-stats.json'})
     ],
     postcss: function () {

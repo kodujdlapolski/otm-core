@@ -8,7 +8,7 @@ import requests
 
 from django.core.exceptions import ValidationError
 from django.core.urlresolvers import reverse
-from django.utils.translation import ugettext as _, ungettext
+from django.utils.translation import ungettext
 from django.shortcuts import get_object_or_404
 from django.db import transaction
 from django.http import HttpResponseRedirect
@@ -17,7 +17,6 @@ from django.conf import settings
 from treemap.search import Filter
 from treemap.models import Tree, Plot
 from treemap.ecobenefits import get_benefits_for_filter
-from treemap.ecobenefits import BenefitCategory
 from treemap.ecocache import get_cached_plot_count
 from treemap.lib import format_benefits
 from treemap.lib.tree import add_tree_photo_helper
@@ -58,10 +57,10 @@ def delete_tree(request, instance, feature_id, tree_id):
 
 
 def search_tree_benefits(request, instance):
-    filter_str = request.REQUEST.get('q', '')
-    display_str = request.REQUEST.get('show', '')
+    filter_str = request.GET.get('q', '')
+    display_str = request.GET.get('show', '')
 
-    hide_summary_text = request.REQUEST.get('hide_summary', 'false')
+    hide_summary_text = request.GET.get('hide_summary', 'false')
     hide_summary = hide_summary_text.lower() == 'true'
 
     filter = Filter(filter_str, display_str, instance)
@@ -71,24 +70,6 @@ def search_tree_benefits(request, instance):
 
     # Inject the plot count as a basis for tree benefit calcs
     basis.get('plot', {})['n_plots'] = total_plots
-
-    # We also want to inject the total currency amount saved
-    # for plot-based items except CO2 stored
-    total_currency_saved = 0
-
-    for benefit_name, benefit in benefits.get('plot', {}).iteritems():
-        if benefit_name != BenefitCategory.CO2STORAGE:
-            currency = benefit.get('currency', 0.0)
-            if currency:
-                total_currency_saved += currency
-
-    # save it as if it were a normal benefit so we get formatting
-    # and currency conversion
-    benefits.get('plot', {})['totals'] = {
-        'value': None,
-        'currency': total_currency_saved,
-        'label': _('Total annual benefits')
-    }
 
     formatted = format_benefits(instance, benefits, basis, digits=0)
 
@@ -172,8 +153,7 @@ def _single_result_context(instance, n_plots, n_resources, filter):
                 if qs.count() == 1:
                     break
         feature = qs[0]
-        latlon = feature.geom
-        latlon.transform(4326)
+        latlon = feature.latlon
         return {
             'id': feature.id,
             'lon': latlon.x,

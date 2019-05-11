@@ -83,6 +83,9 @@ class TreeImportEvent(GenericImportEvent):
         legal_fields = set(self.ordered_legal_fields_title_case())
         return legal_fields, fields.title_case(self._required_fields())
 
+    def ignored_fields(self):
+        return fields.trees.IGNORED
+
 
 class TreeImportRow(GenericImportRow):
     WARNING = 2
@@ -107,7 +110,7 @@ class TreeImportRow(GenericImportRow):
         'date_planted': fields.trees.DATE_PLANTED,
         'date_removed': fields.trees.DATE_REMOVED,
         # TODO: READONLY restore when implemented
-        # 'readonly': fields.trees.READ_ONLY
+        # 'readonly': fields.trees.READ_ONLY,
     }
 
     # plot that was created from this row
@@ -118,6 +121,7 @@ class TreeImportRow(GenericImportRow):
 
     class Meta:
         app_label = 'importer'
+        index_together = ('import_event', 'idx')
 
     @property
     def model_fields(self):
@@ -153,12 +157,15 @@ class TreeImportRow(GenericImportRow):
         })
 
         plot_id = data.get(self.model_fields.OPENTREEMAP_PLOT_ID, None)
+        tree_id = data.get(self.model_fields.OPENTREEMAP_TREE_ID, None)
 
         # Check for an existing plot, use it if we're not already:
         if plot_id and (self.plot is None or self.plot.pk != plot_id):
             plot = Plot.objects.get(pk=plot_id)
         elif self.plot is not None:
             plot = self.plot
+        elif tree_id:
+            plot = Tree.objects.get(pk=tree_id).plot
         else:
             plot = Plot(instance=self.import_event.instance)
 
@@ -218,6 +225,7 @@ class TreeImportRow(GenericImportRow):
 
         if plot_edited:
             plot.save_with_system_user_bypass_auth()
+            plot.update_updated_fields(ie.owner)
 
     def _commit_tree_data(self, data, plot, tree, tree_edited):
         for tree_attr, field_name in TreeImportRow.TREE_MAP.iteritems():
@@ -233,7 +241,8 @@ class TreeImportRow(GenericImportRow):
         for udf_def in tree_udf_defs:
             udf_column_name = ie.get_udf_column_name(udf_def)
             value = data.get(udf_column_name, None)
-            if value:
+            # Legitimate values could be falsey
+            if value is not None:
                 tree_edited = True
                 if tree is None:
                     tree = Tree(instance=plot.instance)
@@ -243,6 +252,7 @@ class TreeImportRow(GenericImportRow):
         if tree_edited:
             tree.plot = plot
             tree.save_with_system_user_bypass_auth()
+            tree.plot.update_updated_fields(ie.owner)
 
     def validate_geom(self):
         x = self.cleaned.get(fields.trees.POINT_X, None)
@@ -275,29 +285,46 @@ class TreeImportRow(GenericImportRow):
 
         return True
 
-    def validate_otm_id(self):
-        oid = self.cleaned.get(fields.trees.OPENTREEMAP_PLOT_ID, None)
+    def validate_plot_id_and_tree_id(self):
+        result = True
+        plot_id = self.cleaned.get(fields.trees.OPENTREEMAP_PLOT_ID, None)
+        tree_id = self.cleaned.get(fields.trees.OPENTREEMAP_TREE_ID, None)
 
-        if oid:
+        if tree_id:
+            tree = Tree.objects.filter(pk=tree_id,
+                                       instance=self.import_event.instance)
+            if not tree.exists():
+                self.append_error(errors.INVALID_TREE_ID,
+                                  fields.trees.OPENTREEMAP_TREE_ID)
+                result = False
+            elif plot_id:
+                if tree[0].plot_id != plot_id:
+                    self.append_error(errors.PLOT_TREE_MISMATCH,
+                                      (fields.trees.OPENTREEMAP_PLOT_ID,
+                                       fields.trees.OPENTREEMAP_TREE_ID))
+                    result = False
+
+        if plot_id:
             has_plot = Plot.objects \
-                .filter(pk=oid, instance=self.import_event.instance) \
+                .filter(pk=plot_id, instance=self.import_event.instance) \
                 .exists()
 
             if not has_plot:
-                self.append_error(errors.INVALID_OTM_ID,
+                self.append_error(errors.INVALID_PLOT_ID,
                                   fields.trees.OPENTREEMAP_PLOT_ID)
-                return False
+                result = False
 
-        return True
+        return result
 
     def validate_proximity(self, point):
         # This block must stay at the top of the function and
         # effectively disables proximity validation when the import
-        # row includes an OTM plot id. Proximity validation can
+        # row includes an OTM plot id or tree id. Proximity validation can
         # prevent instance admins from correcting the locations of
         # previously uploaded trees in bulk.
-        oid = self.cleaned.get(fields.trees.OPENTREEMAP_PLOT_ID, None)
-        if oid is not None:
+        plot_id = self.cleaned.get(fields.trees.OPENTREEMAP_PLOT_ID, None)
+        tree_id = self.cleaned.get(fields.trees.OPENTREEMAP_TREE_ID, None)
+        if plot_id is not None or tree_id is not None:
             return True
 
         offset = 3.048  # 10ft in meters
@@ -307,11 +334,19 @@ class TreeImportRow(GenericImportRow):
                                (point.x + offset, point.y - offset),
                                (point.x - offset, point.y - offset)))
 
+        # This gets called while committing each row.
+        # Assume that the creator of the csv knows best,
+        # and avoid proximity checks against other plots in the same csv.
+        already_committed = self.import_event.rows()\
+            .filter(plot_id__isnull=False)\
+            .values_list('plot_id')
+
         # Using MapFeature directly avoids a join between the
         # treemap_plot and treemap_mapfeature tables.
         nearby = MapFeature.objects\
                            .filter(instance=self.import_event.instance)\
                            .filter(feature_type='Plot')\
+                           .exclude(pk__in=already_committed)\
                            .filter(geom__intersects=nearby_bbox)
 
         nearby = nearby.distance(point).order_by('distance')[:5]
@@ -396,8 +431,12 @@ class TreeImportRow(GenericImportRow):
                     udf_def.clean_value(value)
                     self.cleaned[column_name] = value
                 except ValidationError as ve:
+                    message = str(ve)
+                    if isinstance(ve.message_dict, dict):
+                        message = '\n'.join(
+                            [unicode(m) for m in ve.message_dict.values()])
                     self.append_error(
-                        errors.INVALID_UDF_VALUE, column_name, str(ve))
+                        errors.INVALID_UDF_VALUE, column_name, message)
 
     def validate_row(self):
         """
@@ -419,7 +458,7 @@ class TreeImportRow(GenericImportRow):
         self.validate_user_defined_fields()
 
         # We can work on the 'cleaned' data from here on out
-        self.validate_otm_id()
+        self.validate_plot_id_and_tree_id()
 
         # Attaches a GEOS point to fields.trees.POINT
         self.validate_geom()

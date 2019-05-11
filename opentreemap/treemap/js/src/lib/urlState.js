@@ -11,13 +11,12 @@
 
 var _ = require('lodash'),
     Bacon = require('baconjs'),
+    U = require('treemap/lib/utility.js'),
     url = require('url'),
 
     modeNamesForUrl = [
-        require('treemap/lib/addTreeMode.js').name,
-        require('treemap/lib/addResourceMode.js').name,
-        'prioritization',
-        'scenarios'
+        require('treemap/mapPage/addTreeMode.js').name,
+        require('treemap/mapPage/addResourceMode.js').name
     ];
 
 var _state = null,
@@ -63,11 +62,7 @@ function WindowApi() {
 var serializers = {
     zoomLatLng: function(state, query) {
         if (state.zoomLatLng) {
-            var zoom = state.zoomLatLng.zoom,
-                precision = Math.max(0, Math.ceil(Math.log(zoom) / Math.LN2)),
-                lat = state.zoomLatLng.lat.toFixed(precision),
-                lng = state.zoomLatLng.lng.toFixed(precision);
-            query.z = [zoom, lat, lng].join('/');
+            query.z = U.makeZoomLatLngQuery(state.zoomLatLng);
         }
     },
 
@@ -77,6 +72,9 @@ var serializers = {
         }
         if (state.search && state.search.display) {
             query.show = JSON.stringify(state.search.display);
+        }
+        if (state.search && state.search.address) {
+            query.a = state.search.address;
         }
     },
 
@@ -117,6 +115,11 @@ var deserializers = {
     show: function(newState, query) {
         newState.search = newState.search || {};
         newState.search.display = query.show ? JSON.parse(query.show) : undefined;
+    },
+
+    a: function(newState, query) {
+        newState.search = newState.search || {};
+        newState.search.address = query.a || undefined;
     },
 
     m: function(newState, query) {
@@ -193,7 +196,7 @@ module.exports = {
     },
 
     setModeName: function (modeName) {
-        modeName = _.contains(modeNamesForUrl, modeName) ? modeName : '';
+        modeName = _.includes(modeNamesForUrl, modeName) ? modeName : '';
         set('modeName', modeName, {
             silent: true,
             replace: true
@@ -266,7 +269,7 @@ function getUrlFromState(state) {
 }
 
 function setStateAndPushToApp(newState) {
-    var changedState = _.omit(newState, function(v, k) {
+    var changedState = _.omitBy(newState, function(v, k) {
         return _state && _.isEqual(_state[k], v);
     });
     _state = newState;

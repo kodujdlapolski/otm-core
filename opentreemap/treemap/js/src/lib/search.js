@@ -8,7 +8,8 @@ var $ = require('jquery'),
     isTypeaheadHiddenField = require('treemap/lib/fieldHelpers.js'),
     FH = require('treemap/lib/fieldHelpers.js'),
     config = require('treemap/lib/config.js'),
-    querystring = require('querystring');
+    querystring = require('querystring'),
+    locationSearchUI = require('treemap/mapPage/locationSearchUI.js');
 
 var DATETIME_FORMAT = FH.DATETIME_FORMAT;
 var TREE_MODELS = ['Tree', 'EmptyPlot'];
@@ -57,7 +58,7 @@ var makeQueryStringFromFilters = exports.makeQueryStringFromFilters = function(f
 // search parameters, so that they can be used to put a search on the
 // dom or a dom into the search.
 function buildElems() {
-    return _.object(_.map($(SEARCH_FIELD_SELECTOR), function (el) {
+    return _.fromPairs(_.map($(SEARCH_FIELD_SELECTOR), function (el) {
         var $el = $(el),
             name = $el.attr('name') || $el.attr('data-search-identifier'),
             type = $el.attr('data-search-type'),
@@ -128,7 +129,7 @@ function applyDisplayListToDom(displayList) {
     if (displayList) {
         $('[data-search-display]').prop('checked', false);
         _.each(displayList, checkDisplayFilter);
-        if (_.contains(displayList, 'Plot')) {
+        if (_.includes(displayList, 'Plot')) {
             _.each(TREE_MODELS, checkDisplayFilter);
         }
     } else {
@@ -136,9 +137,17 @@ function applyDisplayListToDom(displayList) {
     }
 }
 
+function applyAddressToBoundaryTypeahead(filter, address) {
+    if (!hasBoundaryFilter(filter) && address) {
+        $('#boundary-typeahead').typeahead('val', address);
+        locationSearchUI.showAppropriateWellButton();
+    }
+}
+
 function applySearchToDom(search) {
     applyFilterObjectToDom(search.filter || {});
     applyDisplayListToDom(search.display);
+    applyAddressToBoundaryTypeahead(search.filter, search.address);
 }
 
 exports.applySearchToDom = applySearchToDom;
@@ -146,9 +155,11 @@ exports.applySearchToDom = applySearchToDom;
 exports.reset = _.partialRight(applySearchToDom, {});
 
 exports.buildSearch = function () {
+    var filter = buildFilterObject();
     return {
-        'filter': buildFilterObject(),
-        'display': buildDisplayList()
+        'filter': filter,
+        'display': buildDisplayList(),
+        'address': getAddressIfSet(filter)
     };
 };
 
@@ -164,7 +175,7 @@ function buildFilterObject () {
 
         if ($elem.is(':checked') || ($elem.is(':not(:checkbox)') && val && val.length > 0)) {
             if ($elem.is('[data-date-format]')) {
-                var date = moment($elem.datepicker('getDate'));
+                var date = moment($elem.datepicker('getDate') || $elem.val());
                 if (key_and_pred.pred === "MIN") {
                     date = date.startOf("day");
                 } else if (key_and_pred.pred === "MAX") {
@@ -175,7 +186,7 @@ function buildFilterObject () {
                 if ($elem.is(":checked")) {
                     val = textToBool(val);
                 }
-            } else if (_.contains(['MIN', 'MAX'], key_and_pred.pred)) {
+            } else if (_.includes(['MIN', 'MAX'], key_and_pred.pred)) {
                 // range searches (min and max) are the only type in which
                 // comparison as text will yield undesirable results for
                 // numbers. Casting to float is satisfactory because it
@@ -218,6 +229,19 @@ function buildDisplayList() {
         return filtersWithoutTreeModels.concat('Plot');
     }
     return filters;
+}
+
+function getAddressIfSet(filter) {
+    // If the filter contains a boundary query, the text in the location search
+    // box is not an address
+    if (hasBoundaryFilter(filter)) {
+        return undefined;
+    }
+    return $('#boundary-typeahead').val() || undefined;
+}
+
+function hasBoundaryFilter(filter) {
+    return filter && filter['mapFeature.geom'] && filter['mapFeature.geom'].IN_BOUNDARY;
 }
 
 // Arguments

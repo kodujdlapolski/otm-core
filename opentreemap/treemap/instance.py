@@ -9,6 +9,7 @@ from django.contrib.gis.db import models
 from django.contrib.gis.db.models import Extent
 from django.contrib.gis.gdal.srs import SpatialReference
 from django.contrib.gis.geos import MultiPolygon, Polygon, GEOSGeometry
+from django.contrib.gis.geos.error import GEOSException
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from django.core.validators import RegexValidator
 from django.conf import settings
@@ -32,6 +33,7 @@ from treemap.json_field import JSONField
 from treemap.lib.object_caches import udf_defs
 from treemap.species.codes import (species_codes_for_regions,
                                    all_species_codes, ITREE_REGION_CHOICES)
+from treemap.DotDict import DotDict
 
 URL_NAME_PATTERN = r'[a-zA-Z]+[a-zA-Z0-9\-]*'
 
@@ -100,10 +102,11 @@ def add_species_to_instance(instance):
 
 
 PERMISSION_VIEW_EXTERNAL_LINK = 'view_external_link'
+PERMISSION_MODELING = 'modeling'
 
 
 # Don't call this function directly, call plugin.get_instance_permission_spec()
-def get_instance_permission_spec():
+def get_instance_permission_spec(instance=None):
     from treemap.audit import Role
     return [
         {
@@ -112,6 +115,12 @@ def get_instance_permission_spec():
                              'of a tree or map feature'),
             'default_role_names': [Role.ADMINISTRATOR, Role.EDITOR],
             'label': _('Can View External Link')
+        },
+        {
+            'codename': PERMISSION_MODELING,
+            'description': _('Can access modeling page'),
+            'default_role_names': [Role.ADMINISTRATOR],
+            'label': _('Can Access Modeling')
         }
     ]
 
@@ -154,7 +163,10 @@ class InstanceBounds(models.Model):
         web_mercator = SpatialReference(3857)
 
         def add_polygon(geom_dict):
-            geom = GEOSGeometry(json.dumps(geom_dict), 4326)
+            try:
+                geom = GEOSGeometry(json.dumps(geom_dict), 4326)
+            except GEOSException:
+                raise ValidationError('GeoJSON is not valid')
             geom.transform(web_mercator)
             geoms.append(geom)
 
@@ -173,6 +185,9 @@ class InstanceBounds(models.Model):
                     'GeoJSON features must be Polygons or MultiPolygons')
 
         bounds = MultiPolygon(geoms)
+        if not bounds.valid:
+            raise ValidationError(
+                'GeoJSON is not valid: %s' % bounds.valid_reason)
 
         return InstanceBounds.objects.create(geom=bounds)
 
@@ -268,7 +283,7 @@ class Instance(models.Model):
         instance.config = DotDict({})
         instance.config.fruit.apple.type = 'macoun'
     """
-    config = JSONField(blank=True)
+    config = JSONField(blank=True, default=DotDict)
 
     is_public = models.BooleanField(default=False)
 
@@ -468,13 +483,19 @@ class Instance(models.Model):
         # To get a unique thumbprint across instances and species updates
         # we use the instance's url_name, latest species update time, and
         # species count (to handle deletions).
+        #
+        # Note: On 8/28/17, added a version to invalidate cache after changing
+        # data included in scientific name
         from treemap.models import Species
         my_species = Species.objects \
             .filter(instance_id=self.id) \
             .order_by('-updated_at')
+        version = 1
         if my_species.exists():
-            return "%s_%s_%s" % (
-                self.url_name, my_species.count(), my_species[0].updated_at)
+            return "%s_%s_%s_%s" % (
+                self.url_name, my_species.count(), my_species[0].updated_at,
+                version
+            )
         else:
             return self.url_name
 
@@ -753,7 +774,10 @@ class Instance(models.Model):
         for field in scalar_fields:
             model_name, name = field.split('.', 1)  # maxsplit of 1
             Model = Plot if model_name == 'plot' else Tree
-            standard_fields = Model._meta.get_all_field_names()
+            standard_fields = [
+                f.name for f in Model._meta.get_fields()
+                if not (f.many_to_one and f.related_model is None)
+            ]
 
             if ((name not in standard_fields and field not in scalar_udfs)):
                 errors.add(INSTANCE_FIELD_ERRORS['missing_field'])
