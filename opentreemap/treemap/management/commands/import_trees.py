@@ -76,6 +76,10 @@ def get_summed_trunk_diam(circumferences_str):
 
 
 def convert_coords(row):
+    """
+    Changes the EPSG 2178 projection to 3857.
+    Indices 12 and 13 denote x and y coordinates on map.
+    """
     pl_proj = Proj(init='EPSG:2178')
     rp = Reprojector()
     transform = rp.get_transformation_function(
@@ -99,7 +103,7 @@ def save_tree(row, user, instance_id):
         plot.save_with_system_user_bypass_auth()
         tree = Tree(
             plot=plot,
-            instance_id=1,
+            instance_id=instance_id,
             species=species,
             diameter=trunk_diam,
             height=height,
