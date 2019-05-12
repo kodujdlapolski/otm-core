@@ -1,0 +1,49 @@
+version: "3"
+services:
+  core:
+    build: .
+    command: python opentreemap/manage.py runserver 0.0.0.0:8000
+    volumes:
+      - ./:/app/:z
+    ports:
+      - 8000:8000
+    depends_on:
+      - postgres
+      - redis
+      - tiler
+
+  tiler:
+    build: https://github.com/kodujdlapolski/otm-tiler.git#develop
+    ports:
+      - 4000:4000
+    depends_on:
+      - postgres
+      - redis
+    environment:
+      - OTM_DB_USER=otm_kdp
+      - OTM_DB_PASSWORD=postgres
+      - OTM_DB_NAME=otm_kdp
+      - OTM_DB_HOST=postgres
+      - OTM_DB_PORT=5432
+      - OTM_CACHE_HOST=redis
+      - OTM_CACHE_PORT=6379
+      - OTM_STACK_TYPE=development
+
+  redis:
+    image: redis
+    ports:
+      - 6379:6379
+
+  postgres:
+    image: mdillon/postgis
+    ports:
+      - 5432
+    environment:
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_USER=postgres
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./scripts/sql/:/docker-entrypoint-initdb.d/
+
+volumes:
+  pgdata:
