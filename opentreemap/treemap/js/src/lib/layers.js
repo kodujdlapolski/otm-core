@@ -141,7 +141,7 @@ function getUrlMaker(table, extension, tilerArgs) {
         }
 
         return format(
-            '%s/tile/%s/database/otm/table/%s/{z}/{x}/{y}.%s%s',
+            '%s/%s/database/otm/table/%s/{z}/{x}/{y}.%s%s',
             config.tileHost || '', rev, table, extension,
             urlLib.format({query: query}));
     };
