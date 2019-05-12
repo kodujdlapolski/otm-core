@@ -53,7 +53,7 @@ urlpatterns = [
     # The profile view is handled specially by redirecting to
     # the page of the currently logged in user
     url(r'^accounts/profile/$', routes.profile_to_user_page, name='profile'),
-    url(r'^accounts/logout/$', 'django.contrib.auth.views.logout',
+    url(r'^accounts/logout/$', logout,
         {'next_page': '/%s/map/' % landing_page_instance}),
     url(r'^accounts/forgot-username/$', routes.forgot_username,
         name='forgot_username'),
