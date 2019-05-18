@@ -29,6 +29,17 @@ services:
       - OTM_CACHE_PORT=6379
       - OTM_STACK_TYPE=development
 
+  ecobenefits:
+    build: services/ecobenefits
+    command: make run
+    volumes:
+      - ./services/ecobenefits/:/app/:z
+    ports:
+      - 8888:8888
+    depends_on:
+      - redis
+      - postgres
+
   redis:
     image: redis
     ports:

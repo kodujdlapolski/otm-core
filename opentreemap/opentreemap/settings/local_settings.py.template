@@ -2,7 +2,7 @@
 STATIC_ROOT = '/app/static_dir'
 MEDIA_ROOT = '/app/media'
 
-ECO_SERVICE_URL = 'http://ecoservice:8888/summary'
+ECO_SERVICE_URL = 'http://ecobenefits:8888/summary'
 
 STATIC_URL = '/static/'
 

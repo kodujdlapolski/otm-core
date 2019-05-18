@@ -26,7 +26,7 @@ SYSTEM_USER_ID = -1
 #
 # URL to access eco benefit service
 #
-ECO_SERVICE_URL = 'http://localhost:13000'
+ECO_SERVICE_URL = 'http://ecobenefits:8888/summary'
 
 # This should be the google analytics id without
 # the 'GTM-' prefix
