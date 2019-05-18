@@ -27,7 +27,6 @@ EMAIL_HOST = 'localhost'
 EMAIL_PORT = 25
 
 DEBUG = True
-# ALLOWED_HOSTS = ['37.233.101.57']
 ALLOWED_HOSTS = ['*']
 # Local time zone for this installation. Choices can be found here:
 # http://en.wikipedia.org/wiki/List_of_tz_zones_by_name

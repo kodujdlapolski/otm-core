@@ -76,7 +76,7 @@ class Command(BaseCommand):
             y = center_pt.y
             instance_bounds = InstanceBounds.create_from_point(x, y)
         else:
-            geom = GEOSGeometry(open(options['geojson'], srid=4326).read())
+            geom = GEOSGeometry(open(options['geojson']).read(), srid=4326)
             instance_bounds = InstanceBounds.objects.create(geom=geom)
 
         url_name = options.get('url_name')
