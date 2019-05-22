@@ -1,0 +1,59 @@
+
+STATIC_ROOT = '/app/static_dir'
+MEDIA_ROOT = '/app/media'
+
+ECO_SERVICE_URL = 'http://ecobenefits:8888/summary'
+
+STATIC_URL = '/static/'
+
+TILE_HOST = 'http://localhost:4000'
+
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.contrib.gis.db.backends.postgis',
+        'NAME': 'otm_kdp',  # substitute your database name
+        'USER': 'otm_kdp',  # substitute your database username
+        'PASSWORD': 'postgres',  # substitute your database password
+        'HOST': 'postgres',
+        'PORT': '5432'
+    }
+}
+
+BROKER_URL = 'redis://redis:6379/'
+CELERY_RESULT_BACKEND = 'redis://redis:6379/'
+
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'localhost'
+EMAIL_PORT = 25
+
+DEBUG = True
+ALLOWED_HOSTS = ['*']
+# Local time zone for this installation. Choices can be found here:
+# http://en.wikipedia.org/wiki/List_of_tz_zones_by_name
+# although not all choices may be available on all operating systems.
+# In a Windows environment this must be set to your system time zone.
+TIME_ZONE = 'Europe/Warsaw'
+
+# Language code for this installation. All choices can be found here:
+# http://www.i18nguy.com/unicode/language-identifiers.html
+LANGUAGE_CODE = 'pl'
+
+LOCALE_PATHS = (
+    '/app/opentreemap/treemap/locale',
+    '/app/opentreemap/locale',
+
+)
+
+USE_I18N = True
+USE_L10N = True
+
+ADMIN_NAME = 'super'
+LANDING_PAGE_DEFAULT_INSTANCE = 'warszawa'
+
+SOCIAL_AUTH_FACEBOOK_KEY = ''
+SOCIAL_AUTH_FACEBOOK_SECRET = ''
+
+SOCIAL_AUTH_GOOGLE_OAUTH2_KEY = ''
+SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET = ''
+
+POSTGIS_VERSION = (2, 5, 2)
