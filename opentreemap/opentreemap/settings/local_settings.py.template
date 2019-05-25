@@ -12,7 +12,7 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.contrib.gis.db.backends.postgis',
         'NAME': 'otm_kdp',  # substitute your database name
-        'USER': 'otm_kdp',  # substitute your database username
+        'USER': 'postgres',  # substitute your database username
         'PASSWORD': 'postgres',  # substitute your database password
         'HOST': 'postgres',
         'PORT': '5432'
