@@ -27,7 +27,6 @@ exports.init = function(options) {
         validationFields = options.validationFields || section + ' [data-class="error"]',
         globalErrorSection = options.globalErrorSection,
         errorCallback = options.errorCallback || $.noop,
-        onSaveAfter = options.onSaveAfter || _.identity,
         dontUpdateOnSaveOk = options.dontUpdateOnSaveOk || false,
 
         showSavePending = function (saveIsPending) {
@@ -91,7 +90,7 @@ exports.init = function(options) {
             $("table[data-udf-id] .placeholder").css('display', 'none');
         },
 
-        getDataToSave = function() {
+        getDataToSave = options.getDataToSave || function() {
             var data = FH.formToDictionary($(form), $(editFields), $(displayFields));
 
             // Extract data for all rows of the collection,
@@ -113,7 +112,7 @@ exports.init = function(options) {
                             $tds = $row.find('td'),
                             id = $row.attr('data-value-id'),
 
-                            rowData = _.object(headers, $tds
+                            rowData = _.zipObject(headers, $tds
                                         .map(function() {
                                             return $.trim($(this).attr('data-value'));
                                         }));
@@ -241,14 +240,14 @@ exports.init = function(options) {
             .map('.globalErrors'),
 
         unhandledErrorStream = responseErrorStream
-            .filter(R.and(BU.isPropertyUndefined('fieldErrors'),
-                          BU.isPropertyUndefined('globalErrors')))
+            .filter(R.both(BU.isPropertyUndefined('fieldErrors'),
+                           BU.isPropertyUndefined('globalErrors')))
             .map('.unstructuredError'),
 
         editStartStream = actionStream.filter(isEditStart),
 
         inEditModeProperty = actionStream.map(function (event) {
-            return _.contains(eventsLandingInEditMode, event);
+            return _.includes(eventsLandingInEditMode, event);
         })
             .toProperty()
             .skipDuplicates(),
@@ -256,7 +255,7 @@ exports.init = function(options) {
         saveOKFormDataStream = saveOkStream.map('.formData'),
 
         eventsLandingInDisplayModeStream =
-            actionStream.filter(_.contains, eventsLandingInDisplayMode),
+            actionStream.filter(_.includes, eventsLandingInDisplayMode),
 
         shouldBeInEditModeStream = options.shouldBeInEditModeStream || Bacon.never(),
         modeChangeStream = shouldBeInEditModeStream
@@ -298,8 +297,6 @@ exports.init = function(options) {
             editForm.hideAndShowElements(fields, actions, action);
         }
     }
-
-    responseStream.onValue(onSaveAfter);
 
     globalCancelStream.onValue(showSavePending, false);
 

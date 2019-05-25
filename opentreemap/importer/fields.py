@@ -67,6 +67,8 @@ class species(object):
 
     PLOT_CHOICES = set()
 
+    IGNORED = set()
+
 
 class trees(object):
     # X/Y are required
@@ -95,7 +97,11 @@ class trees(object):
     # READ_ONLY = 'read only'
 
     OPENTREEMAP_PLOT_ID = 'planting site id'
+    OPENTREEMAP_TREE_ID = 'tree id'
     EXTERNAL_ID_NUMBER = 'custom id'
+
+    UPDATED_AT = 'updated at'
+    UPDATED_BY = 'updated by'
 
     TREE_PRESENT = 'tree present'
 
@@ -128,7 +134,7 @@ class trees(object):
 
     FLOAT_FIELDS = {POINT_X, POINT_Y}
 
-    POS_INT_FIELDS = {OPENTREEMAP_PLOT_ID}
+    POS_INT_FIELDS = {OPENTREEMAP_PLOT_ID, OPENTREEMAP_TREE_ID}
 
     # TODO: READONLY restore when implemented
     BOOLEAN_FIELDS = {TREE_PRESENT}
@@ -143,6 +149,9 @@ class trees(object):
         ('length', PLOT_LENGTH),
         ('id', OPENTREEMAP_PLOT_ID),
         ('owner_orig_id', EXTERNAL_ID_NUMBER),
+        ('updated_at', UPDATED_AT),
+        ('updated_by__username', UPDATED_BY),
+        ('tree__id', OPENTREEMAP_TREE_ID),
         ('tree_present', TREE_PRESENT),
         ('tree__species__genus', GENUS),
         ('tree__species__species', SPECIES),
@@ -156,9 +165,11 @@ class trees(object):
         ('tree__date_removed', DATE_REMOVED),
     )
 
+    IGNORED = {UPDATED_AT, UPDATED_BY}
+
     # TODO: READONLY restore when implemented
     # Note: this is a tuple and not a set so it will be ordered in exports
-    ALL = tuple([p[1] for p in EXPORTER_PAIRS])
+    ALL = tuple([p[1] for p in EXPORTER_PAIRS if p[1] not in IGNORED])
 
 
 def title_case(field_names):

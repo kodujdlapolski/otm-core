@@ -85,6 +85,10 @@ class UITestCase(StaticLiveServerTestCase):
     def find_id(self, id):
         return self.driver.find_element_by_id(id)
 
+    def is_visible(self, selector):
+        element = self.find(selector)
+        return element is not None and element.is_displayed()
+
     def process_login_form(self, username, password):
         username_elmt = self.wait_until_present('[name="username"]')
         password_elmt = self.find_name('password')
@@ -100,7 +104,7 @@ class UITestCase(StaticLiveServerTestCase):
     def browse_to_instance_url(self, url, instance=None):
         instance = instance if instance is not None else self.instance
         self.driver.get('%s/%s/%s' % (self.live_server_url,
-                                      self.instance.url_name,
+                                      instance.url_name,
                                       url))
 
     def find_anchor_by_url(self, url):
@@ -161,6 +165,17 @@ class UITestCase(StaticLiveServerTestCase):
                 return True
 
         WebDriverWait(self.driver, timeout).until(is_invisible)
+        return element
+
+    def wait_for_input_value(self, element_or_selector, value, timeout=10):
+        """
+        Wait until 'element_or_selector' input has the specified value
+        """
+        element = self._get_element(element_or_selector)
+        WebDriverWait(self.driver, timeout).until(
+            # It seems wrong, but selenium fetches the value of an input
+            # element using get_attribute('value')
+            lambda driver: element.get_attribute('value') == value)
         return element
 
     def _get_element(self, element_or_selector):

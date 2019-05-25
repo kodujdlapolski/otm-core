@@ -8,7 +8,8 @@ var $ = require('jquery'),
     config = require('treemap/lib/config'),
     reverse = require('reverse');
 
-var currentLayer = null;
+var currentLayer = null,
+    shouldZoomOnLayerChange = true;
 
 function clearLayer(map) {
     if (currentLayer) {
@@ -16,36 +17,15 @@ function clearLayer(map) {
     }
 }
 
-function showBoundaryGeomOnMapLayerAndZoom(map, boundaryGeom) {
+function showBoundaryGeomOnMapLayerAndZoom(map, boundaryGeoJsonLayer) {
     clearLayer(map);
 
-    // We want to put the boundary polygon below the plot tiles
-    // so that plots will display and select normally.
-    // But in Leaflet < 0.8 all polygon layers go in the "overlay pane",
-    // which is above the tile pane:
-    //     Map pane
-    //         Tile pane (position absolute, z-index 2)
-    //             ... tile layers ...
-    //         Objects pane (z-index 2)
-    //             Overlay pane (z-index 4)
-    //                 ... polygon layers ...
-    //             Shadow pane (z-index 5)
-    //             Marker pane (z-index 6)
-    //             Popup pane (z-index 7)
-    // We solve it by putting the tile pane above the overlay pane.
-    // That's not great since we might want other polygons on the map,
-    // *above* the plot tiles.
-    // TODO: When we switch to Leaflet 1.0, make a separate pane to contain
-    // the boundary polygon, with a permanent z-index.
-    // (Also note that these z-indexes are unrelated to the ones in
-    // layers.js, which only apply within the tile pane -- the tile pane
-    // creates a stacking context because it has position absolute.)
-    map.getPanes().tilePane.style.zIndex = 5;
+    currentLayer = boundaryGeoJsonLayer;
+    map.addLayer(boundaryGeoJsonLayer);
 
-    currentLayer = boundaryGeom;
-
-    map.addLayer(boundaryGeom);
-    map.fitBounds(boundaryGeom.getBounds());
+    if (shouldZoomOnLayerChange) {
+        map.fitBounds(currentLayer.getBounds());
+    }
 }
 
 function instanceBoundaryIdToUrl(id) {
@@ -56,35 +36,57 @@ function instanceBoundaryIdToUrl(id) {
 }
 
 function parseGeoJson(style, geojson) {
-    return L.geoJson(geojson, {
-        style: function() { return style; }
-    });
+    var options = _.extend({
+            style: function() { return style; },
+            className: 'boundary-polygon'
+        }, layersLib.SEARCHED_BOUNDARY_PANE_OPTION);
+
+    var layer = L.geoJson(geojson, options),
+        inner = layer.getLayers()[0],
+        latLngs = inner.getLatLngs();
+
+    // Create a polygon instead of a geoJson layer
+    // to support custom area editing.
+    if (1 === latLngs.length) {
+        return L.polygon(latLngs[0][0], options);
+    }
+    return layer;
 }
 
-exports.init = function (options) {
-    var map = options.map,
-        idStream = options.idStream,
-        boundaries = idStream
-            .filter(BU.isDefined)
-            .map(instanceBoundaryIdToUrl)
-            .flatMap(BU.getJsonFromUrl);
+exports = module.exports = {
+    init: function (options) {
+        var map = options.map,
+            idStream = options.idStream,
+            boundaries = idStream
+                .filter(BU.isNumber)
+                .map(instanceBoundaryIdToUrl)
+                .flatMap(BU.getJsonFromUrl),
+            parsed = boundaries.map(parseGeoJson, options.style);
 
-    boundaries.map(parseGeoJson, options.style)
-        .onValue(showBoundaryGeomOnMapLayerAndZoom, map);
+        parsed.onValue(showBoundaryGeomOnMapLayerAndZoom, map);
 
-    // If there is an error fetching or parsing the
-    // boundary, we should clear any existing, stale
-    // boundary highlight.
-    boundaries.onError(clearLayer, map);
+        // If there is an error fetching or parsing the
+        // boundary, we should clear any existing, stale
+        // boundary highlight.
+        boundaries.onError(clearLayer, map);
 
-    // Write the error to the console to allow for
-    // debugging unexpected problems parsing the GeoJSON
-    // or showing the parsed geometry on the map.
-    boundaries.onError(window.console.log);
+        // Write the error to the console to allow for
+        // debugging unexpected problems parsing the GeoJSON
+        // or showing the parsed geometry on the map.
+        boundaries.onError(window.console.log);
 
-    // If the id stream contains an undefined value
-    // it means that the current search does not contain
-    // a boundary component. In that case, we want to
-    // clear any previouly highlighted area.
-    idStream.filter(BU.isUndefined).onValue(clearLayer, map);
+        // If the id stream contains an undefined value
+        // it means that the current search does not contain
+        // a boundary component. In that case, we want to
+        // clear any previouly highlighted area.
+        idStream.filter(BU.isUndefined).onValue(clearLayer, map);
+
+        return parsed;
+    },
+    getCurrentLayer: function () {
+        return currentLayer;
+    },
+    shouldZoomOnLayerChange: function (shouldZoom) {
+        shouldZoomOnLayerChange = shouldZoom;
+    }
 };

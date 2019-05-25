@@ -1,11 +1,13 @@
 import re
 from django.http import HttpResponseRedirect
 from django.conf import settings
+from django.utils.deprecation import MiddlewareMixin
 
 import logging
 logger = logging.getLogger(__name__)
 
-_ie_version_regex = re.compile(r'MSIE\s+([\d]+)')
+# http://stackoverflow.com/a/30907476
+_ie_version_regex = re.compile(r'(MSIE\s+|Trident.*rv[ :])([\d]+)')
 
 CONTENT_TYPE_PASS_THROUGHS = ('application/json', 'text/csv')
 
@@ -20,7 +22,7 @@ REQUIRED_PARAMETER_MSG = 'The request did not include %s'
 
 # Reference: http://djangosnippets.org/snippets/510/
 # Reference: http://djangosnippets.org/snippets/1147/
-class InternetExplorerRedirectMiddleware:
+class InternetExplorerRedirectMiddleware(MiddlewareMixin):
     """
     Sets `from_ie` and `ie_version` on the request. If the `ie_version` is
     less than `settings.IE_VERSION_MINIMUM` the response redirects to
@@ -30,7 +32,7 @@ class InternetExplorerRedirectMiddleware:
     def _parse_major_ie_version_from_user_agent(self, user_agent):
         search_result = _ie_version_regex.search(user_agent)
         if search_result:
-            return int(search_result.groups()[0])
+            return int(search_result.groups()[1])
         else:
             return None
 

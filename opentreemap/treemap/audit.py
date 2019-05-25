@@ -30,7 +30,7 @@ from treemap.util import (all_models_of_class, leaf_models_of_class,
                           to_object_name, safe_get_model_class,
                           get_pk_from_collection_audit_name,
                           get_name_from_canonical_name,
-                          make_udf_name_from_key)
+                          make_udf_name_from_key, num_format)
 from treemap.decorators import classproperty
 
 from treemap.lib.object_caches import (field_permissions,
@@ -536,12 +536,48 @@ class Dictable(object):
 
 
 class UserTrackable(Dictable):
+    '''
+    Track `tracked_fields` with `Audit` records.
+
+    Leaf classes should implement an `__init__` method, and
+    call `self.populate_previous_state()` after initialization
+    is otherwise complete.
+
+    If changes to a model instance fail to produce `Audit` records,
+    chances are the model's `__init__` did not call
+    `self.populate_previous_state()`.
+
+    Rationale (tl;dr)
+    -----------------
+
+    `populate_previous_state` calls `as_dict`.
+
+    If a class further down the `super` chain has not been initialized,
+    `as_dict` may raise an `AttributeError` due to attributes not
+    having been set yet.
+
+    After the leaf class calls `super(...).__init__()`, it can be
+    assured that all super classes have initialized themselves,
+    at which point `as_dict` will succeed.
+
+    There are ways to get around this, such as subclassing
+    a field to have a `contribute_to_class` method that
+    sets a descriptor on the model class.
+
+    That approach is very deep tinkering with the model
+    instantiation procedure, and is best avoided by preventing
+    circular dependencies in the initialization process
+    in the first place.
+    '''
     def __init__(self, *args, **kwargs):
         # _do_not_track returns the static do_not_track set unioned
         # with any fields that are added during instance initialization.
         self._do_not_track = self.do_not_track
         super(UserTrackable, self).__init__(*args, **kwargs)
-        self.populate_previous_state()
+
+        # It is the leaf class' responsibility to call
+        # `self.populate_previous_state()` after initialization is
+        # otherwise complete.
 
     def apply_change(self, key, orig_value):
         # TODO: if a field has a default value, don't
@@ -721,7 +757,7 @@ class FieldPermission(models.Model):
     def clean(self):
         try:
             cls = get_authorizable_class(self.model_name)
-            cls._meta.get_field_by_name(self.field_name)
+            cls._meta.get_field(self.field_name)
             assert issubclass(cls, Authorizable)
         except KeyError:
             raise ValidationError(
@@ -955,7 +991,7 @@ class Authorizable(UserTrackable):
             for field in self._updated_fields():
                 if field not in self._get_writable_perms_set(user):
                     raise AuthorizeException("Can't edit field %s on %s" %
-                                            (field, self._model_name))
+                                             (field, self._model_name))
 
         # If `WRITE_WITH_AUDIT` (i.e. pending write) is resurrected,
         # this test will prevent `_PendingAuditable` from getting called
@@ -1206,8 +1242,7 @@ class _PendingAuditable(Auditable):
 
         is_insert = self.pk is None
 
-        if ((self.user_can_create(user)
-             or not is_insert or auth_bypass)):
+        if ((self.user_can_create(user) or not is_insert or auth_bypass)):
             # Auditable will make the audits for us (including pending audits)
             return super(_PendingAuditable, self).save_with_user(
                 user, updates=updates, *args, **kwargs)
@@ -1382,8 +1417,8 @@ class Audit(models.Model):
                     datatype = udf_def.datatype_by_field[field_name]
             else:
                 udf_def = next((udfd for udfd in udfds
-                                if udfd.name == field_name
-                                and udfd.model_type == self.model), None)
+                                if udfd.name == field_name and
+                                udfd.model_type == self.model), None)
                 if udf_def is not None:
                     datatype = udf_def.datatype_dict
             if udf_def is not None:
@@ -1394,8 +1429,7 @@ class Audit(models.Model):
                     ' deleted! This audit should be deleted as well')
 
         cls = get_auditable_class(self.model)
-        field_query = cls._meta.get_field_by_name(self.field)
-        field_cls, fk_model_cls, is_local, m2m = field_query
+        field_cls = cls._meta.get_field(self.field)
         field_modified_value = field_cls.to_python(value)
 
         # handle edge cases
@@ -1424,12 +1458,18 @@ class Audit(models.Model):
         return field_modified_value
 
     def _unit_format(self, value):
+        from stormwater.models import PolygonalMapFeature
+
+        field = self.field
+        model_name = to_object_name(self.model)
 
         if isinstance(value, GEOSGeometry):
             if value.geom_type == 'Point':
                 return '%d,%d' % (value.x, value.y)
             if value.geom_type in {'MultiPolygon', 'Polygon'}:
-                value = value.area
+                value = PolygonalMapFeature.polygon_area(value)
+                field = 'area'
+                model_name = 'greenInfrastructure'
         elif isinstance(value, datetime):
             value = dformat(value, settings.SHORT_DATE_FORMAT)
         elif isinstance(value, list):
@@ -1437,15 +1477,15 @@ class Audit(models.Model):
             # list. Should be a human-friendly translation of 'null'
             value = '(%s)' % ', '.join(value) if value else _('none')
 
-        model_name = to_object_name(self.model)
-
-        if is_convertible_or_formattable(model_name, self.field):
+        if is_convertible_or_formattable(model_name, field):
             __, value = get_display_value(
-                self.instance, model_name, self.field, value)
-            if value and is_convertible(model_name, self.field):
+                self.instance, model_name, field, value)
+            if value and is_convertible(model_name, field):
                 units = get_unit_name(get_units(self.instance,
-                                                model_name, self.field))
+                                                model_name, field))
                 value += (' %s' % units)
+        elif isinstance(value, float):
+            return num_format(value)
 
         return value
 
@@ -1469,7 +1509,13 @@ class Audit(models.Model):
     def field_display_name(self):
         if not self.field:
             return ''
-        name = self.field
+
+        cls = get_auditable_class(self.model)
+        if hasattr(cls, 'field_display_name'):
+            name = cls.field_display_name(self.field)
+        else:
+            name = self.field
+
         if name.startswith('udf:'):
             return get_name_from_canonical_name(name)
         else:

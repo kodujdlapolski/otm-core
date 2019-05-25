@@ -9,7 +9,7 @@ import logging
 from contextlib import contextmanager
 from functools import wraps
 from collections import OrderedDict
-from celery import task
+from celery import shared_task
 from tempfile import TemporaryFile
 
 from django.core.files import File
@@ -19,6 +19,8 @@ from treemap.models import Species, Plot
 from treemap.util import safe_get_model_class
 from treemap.audit import model_hasattr
 from treemap.udf import UserDefinedCollectionValue
+from treemap.units import (storage_to_instance_units_factor,
+                           get_value_display_attr)
 
 from treemap.lib.object_caches import udf_defs
 
@@ -114,7 +116,7 @@ def _values_for_model(
     return prefixed_names
 
 
-@task
+@shared_task
 @_job_transaction
 def async_users_export(job, data_format):
     instance = job.instance
@@ -130,7 +132,7 @@ def async_users_export(job, data_format):
     job.save()
 
 
-@task
+@shared_task
 @_job_transaction
 def async_csv_export(job, model, query, display_filters):
     instance = job.instance
@@ -138,6 +140,7 @@ def async_csv_export(job, model, query, display_filters):
     select = OrderedDict()
     select_params = []
     field_header_map = {}
+    field_serializer_map = {}
     if model == 'species':
         initial_qs = (Species.objects.
                       filter(instance=instance))
@@ -184,10 +187,14 @@ def async_csv_export(job, model, query, display_filters):
         select['geom__x'] = 'ST_X(%s)' % get_ll
         select['geom__y'] = 'ST_Y(%s)' % get_ll
 
+        plot_fields += ['updated_by__username']
+
         field_names = set(tree_fields + plot_fields + species_fields)
 
         if field_names:
             field_header_map = _csv_field_header_map(field_names)
+            field_serializer_map = _csv_field_serializer_map(instance,
+                                                             field_names)
             limited_qs = (initial_qs
                           .extra(select=select,
                                  select_params=select_params)
@@ -207,7 +214,8 @@ def async_csv_export(job, model, query, display_filters):
         csv_file = TemporaryFile()
         write_csv(limited_qs, csv_file,
                   field_order=field_header_map.keys(),
-                  field_header_map=field_header_map)
+                  field_header_map=field_header_map,
+                  field_serializer_map=field_serializer_map)
         filename = generate_filename(limited_qs).replace('plot', 'tree')
         job.complete_with(filename, File(csv_file))
 
@@ -224,9 +232,7 @@ def _csv_field_header_map(field_names):
             'mapfeature_ptr',
             'readonly',
             'udfs',
-            'updated_at',
             'updated_by',
-            'tree__id',
             'tree__instance',
             'tree__plot',
             'tree__readonly',
@@ -269,7 +275,33 @@ def _csv_field_header_map(field_names):
     return map
 
 
-@task
+def _csv_field_serializer_map(instance, field_names):
+    """
+    Create serializer functions that convert values to the proper units.
+    """
+    map = {}
+    convertable_fields = {'tree__diameter': ('tree', 'diameter'),
+                          'tree__height': ('tree', 'height'),
+                          'tree__canopy_height': ('tree', 'canopy_height'),
+                          'width': ('plot', 'width'),
+                          'length': ('plot', 'length')}
+
+    def make_serializer(factor, digits):
+        return lambda x: str(round(factor * x, digits))
+
+    for name, details in convertable_fields.iteritems():
+        model_name, field = details
+        factor = storage_to_instance_units_factor(instance,
+                                                  model_name,
+                                                  field)
+        _, digits = get_value_display_attr(instance, model_name, field,
+                                           'digits')
+        digits = int(digits)
+        map[name] = make_serializer(factor, digits)
+    return map
+
+
+@shared_task
 @_job_transaction
 def simple_async_csv(job, qs):
     file_obj = TemporaryFile()
@@ -278,7 +310,7 @@ def simple_async_csv(job, qs):
     job.save()
 
 
-@task
+@shared_task
 def custom_async_csv(csv_rows, job_pk, filename, fields):
     with _job_transaction_manager(job_pk) as job:
         csv_obj = TemporaryFile()

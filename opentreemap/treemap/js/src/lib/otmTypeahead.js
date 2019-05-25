@@ -58,12 +58,18 @@ var getSortFunction = function(sortKeys) {
 };
 
 var create = exports.create = function(options) {
-    var template = mustache.compile($(options.template).html()),
+    var templateMarkup = $(options.template).html(),
+        // As of 0.8.0 mustache no longer generates template functions. We
+        // create an old style template function so that the older version of
+        // typeahead does not notice the API change.
+        template = function(data) {
+            return mustache.render(templateMarkup, data);
+        },
         $input = $(options.input),
         $hidden_input = $(options.hidden),
-        $openButton = $(options.button),
         reverse = options.reverse,
         sorter = _.isArray(options.sortKeys) ? getSortFunction(options.sortKeys) : getSortFunction(['value']),
+        lastSelection = null,
 
         setTypeaheadAfterDataLoaded = function($typeahead, key, query) {
             if (!key) {
@@ -86,7 +92,6 @@ var create = exports.create = function(options) {
         prefetchEngine,
         queryEngine,
         geocoderEngine,
-        allDataStream,
 
         typeaheadOptions = {
             minLength: options.minLength || 0
@@ -116,7 +121,7 @@ var create = exports.create = function(options) {
         },
         geocoderOptions = {
             limit: 10,
-            source: function (query, sync, async) {
+            source: function(query, sync, async) {
                 if (query === '') {
                     sync([]);
                 } else {
@@ -125,6 +130,9 @@ var create = exports.create = function(options) {
             },
             display: 'text'
         };
+
+    // Parsing speeds up future, repeated usages of the template
+    mustache.parse(templateMarkup);
 
     if (options.url) {
         prefetchEngine = new Bloodhound({
@@ -174,7 +182,8 @@ var create = exports.create = function(options) {
             remote: {
                 url: url,
                 transform: function(response) {
-                    return response.suggestions;
+                    // Omit choices representing more than one match (e.g. "Beaches")
+                    return _.filter(response.suggestions, {'isCollection': false});
                 },
                 prepare: function(query, settings) {
                     if (options.geocoderBbox) {
@@ -213,19 +222,29 @@ var create = exports.create = function(options) {
 
         editStream = matchStream.merge(backspaceOrDeleteStream.map(undefined)),
 
-        idStream = matchStream.map(".id")
-                               .merge(backspaceOrDeleteStream.map("")),
+        idStream = matchStream.map(".id").merge(backspaceOrDeleteStream.map("")),
 
         openCloseStream = Bacon.mergeAll(
                 $input.asEventStream('focus typeahead:active typeahead:open').map(true),
                 $input.asEventStream('typeahead:idle typeahead:close').map(false)
-            );
+            ),
+
+        allDataStream,
+
+        enginePostActionBus = new Bacon.Bus();
+
+    // Keep track of when an item is selected from the typeahead menu
+    // to avoid a redundant call to `autocomplete` that could mistakenly
+    // change the selected value.
+    $input.on('typeahead:select', function(ev, suggestion) {
+        lastSelection = suggestion.value;
+    });
 
     selectStream.onValue(function() {
         // After the user selects a field, blur the input so that any soft
         // keyboards that are open will close (mobile)
         _.defer(function() {
-            $input.blur();
+            $input.trigger('blur');
         });
     });
 
@@ -244,6 +263,13 @@ var create = exports.create = function(options) {
                 setTypeahead($input, '');
             }
         });
+        if (options.hidden) {
+            $input.on('input', function() {
+                if ($input.data('datum') === undefined) {
+                    $hidden_input.val('');
+                }
+            });
+        }
     }
     // Set data-unmatched to the input value if the value was not
     // matched to a typeahead datum. Allows for external code to take
@@ -264,19 +290,23 @@ var create = exports.create = function(options) {
                 if (value) {
                     setTypeaheadAfterDataLoaded($input, reverse, value);
                 }
+                enginePostActionBus.push();
             });
+
 
             $hidden_input.on('restore', function(event, value) {
                 enginePromise.done(function() {
                     // If we're already loaded, this applies right away
                     setTypeaheadAfterDataLoaded($input, reverse, value);
+                    enginePostActionBus.push();
                 });
 
                 // If we're not, this will get used when loaded later
                 $hidden_input.val(value || '');
+                enginePostActionBus.push();
             });
 
-            allDataStream = Bacon.fromPromise(enginePromise).map(function () {
+            allDataStream = Bacon.fromPromise(enginePromise).map(function() {
                 return prefetchEngine.all();
             });
         } else if (options.remote) {
@@ -290,40 +320,34 @@ var create = exports.create = function(options) {
         }
     }
 
-    if (options.button) {
-        // typeahead('open') will not show suggestions unless they have already
-        // been rendered once by focusing on the text box. Doing a quick focus
-        // then blur on page load means we can later call it on button click
-        $input.focus();
-        $input.blur();
-
-        var isOpen = false;
-        $input.on('typeahead:open', function() {
-            isOpen = true;
-        });
-        $input.on('typeahead:close', function() {
-            isOpen = false;
-            $openButton.removeClass('active');
-        });
-        $openButton.on('click', function(e) {
-            e.preventDefault();
-            if (isOpen) {
-                $input.typeahead('close');
-            } else {
-                setTypeahead($input, '');
-                $input.typeahead('open');
-
-                // The open may fail if there is no data to show
-                // If so don't add the active class, because then it can never
-                // be removed
-                if (isOpen) {
-                    $openButton.addClass('active');
+    return {
+        autocomplete: function () {
+            var top, success;
+            if ($input.val()) {
+                if (lastSelection === $input.val()) {
+                    success = true;
+                } else {
+                    top = $input.data('ttTypeahead').menu.getTopSelectable();
+                    success = $input.typeahead('autocomplete', top);
+                }
+                if (!success) {
+                    $input.removeData('datum');
                 }
             }
-        });
-    }
-
-    return {
+        },
+        getGeocodeDatum: function(val, cb) {
+            if (geocoderEngine) {
+                geocoderEngine.initialize().done(function() {
+                    geocoderEngine.search($input.val(), $.noop, function(datums) {
+                        if (datums.length > 0) {
+                            lastSelection = datums[0].text;
+                            $input.data('datum', datums[0]);
+                            cb(datums[0]);
+                        }
+                    });
+                });
+            }
+        },
         getDatum: function() {
             return exports.getDatum($input);
         },
@@ -334,11 +358,13 @@ var create = exports.create = function(options) {
                 $hidden_input.val('');
             }
         },
+        input: options.input,
         selectStream: selectStream,
+        programmaticallyUpdatedStream: enginePostActionBus.map(_.identity),
         allDataStream: allDataStream
     };
 };
 
-exports.bulkCreate = function (typeaheads) {
+exports.bulkCreate = function(typeaheads) {
     _.each(typeaheads, create);
 };

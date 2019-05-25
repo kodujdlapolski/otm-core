@@ -17,7 +17,7 @@ from django.conf import settings
 
 from opentreemap.util import dotted_split
 
-from treemap.util import get_model_for_instance, to_object_name
+from treemap.util import get_model_for_instance, to_object_name, num_format
 from treemap.json_field import (is_json_field_reference,
                                 get_attr_from_json_field)
 from treemap.units import (get_digits_if_formattable, get_units_if_convertible,
@@ -291,8 +291,8 @@ def field_type_label_choices(model, field_name, label=None,
             choices = [{'value': value, 'display_value': value}
                        for value in udf_dict['choices']]
             if add_blank == ADD_BLANK_ALWAYS or (
-                add_blank == ADD_BLANK_IF_CHOICE_FIELD
-                    and field_type == 'choice'
+                add_blank == ADD_BLANK_IF_CHOICE_FIELD and
+                field_type == 'choice'
             ):
                 choices.insert(0, {'value': "", 'display_value': ""})
 
@@ -331,7 +331,7 @@ class AbstractNode(template.Node):
         user = _resolve_variable(self.user, context)
         instance = _resolve_variable(self.instance, context)
         field_template = get_template(_resolve_variable(
-                                      self.field_template, context))
+                                      self.field_template, context)).template
 
         if not isinstance(identifier, basestring)\
            or not _identifier_regex.match(identifier):
@@ -349,18 +349,22 @@ class AbstractNode(template.Node):
 
         def _field_value(model, field_name, data_type):
             udf_field_name = field_name.replace('udf:', '')
-            if field_name in model._meta.get_all_field_names():
+            val = None
+            if field_name in [f.name for f in model._meta.get_fields()]:
                 try:
                     val = getattr(model, field_name)
-                except ObjectDoesNotExist:
-                    val = None
+                except (ObjectDoesNotExist, AttributeError):
+                    pass
             elif _is_udf(model, udf_field_name):
-                val = model.udfs[udf_field_name]
-                # multichoices place a json serialized data-value
-                # on the dom element and client-side javascript
-                # processes it into a view table and edit widget
-                if data_type == 'multichoice':
-                    val = json.dumps(val)
+                if udf_field_name in model.udfs:
+                    val = model.udfs[udf_field_name]
+                    # multichoices place a json serialized data-value
+                    # on the dom element and client-side javascript
+                    # processes it into a view table and edit widget
+                    if data_type == 'multichoice':
+                        val = json.dumps(val)
+                elif data_type == 'multichoice':
+                    val = '[]'
             else:
                 raise ValueError('Could not find field: %s' % field_name)
 
@@ -426,6 +430,8 @@ class AbstractNode(template.Node):
             display_vals = [choice['display_value'] for choice in choices
                             if choice['value'] == field_value]
             display_val = display_vals[0] if display_vals else field_value
+        elif data_type == 'float':
+            display_val = num_format(field_value)
         else:
             display_val = unicode(field_value)
 

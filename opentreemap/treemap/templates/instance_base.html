@@ -7,10 +7,13 @@
 
 {% block application_css %}
 
+{% get_files 'js/treemap/base' 'css' as css_files %}
 {% if request.instance.scss_variables %}
-  <link id="application-css" href="{% url 'scss' %}?{{ request.instance.scss_query_string }}" rel="stylesheet">
+<!-- The Webpack bundle name is added as a query parameter for cache busting since
+     it includes a checksum of the bundle, letting us set far-future expires cache headers -->
+  <link id="application-css" rel="stylesheet"
+        href="{% url 'scss' %}?{{ request.instance.scss_query_string }}&url={{ css_files.0.name|urlencode }}">
 {% else %}
-  {% get_files 'js/treemap/base' 'css' as css_files %}
   <link id="application-css" href="{{ css_files.0.url }}" rel="stylesheet">
 {% endif %}
 
@@ -57,23 +60,20 @@ ga('set', 'page', pathname);
 {% endif %}
 
 <li class="explore-map {% block activeexplore %}active{% endblock %}">
-    <a href="{% url 'map' instance_url_name=request.instance.url_name %}" {% if embed %}target="_blank"{% endif %}>
+    <a href="{% url 'map' instance_url_name=request.instance.url_name %}{% block map_query %}{% endblock %}"
+       {% if embed %}target="_blank"{% endif %}>
     <span class="hidden-xs">{% trans "Explore Map" %}</span>
     <!-- We hide the logo on mobile, so we show the instance name instead of "Explore Map" to give context about which map you are on -->
     <span class="visible-xs-inline">{{ request.instance.name }}</span>
   </a>
 </li>
 
-{% if settings.MODELING_VIEW_NAME %}
-  {% if request.instance|feature_enabled:'modeling' %}
-    {% if last_effective_instance_user|has_permission:'modeling' %}
-      <li class="{% block activemodeling %}{% endblock %} hidden-xs">
-        <a href="{% url settings.MODELING_VIEW_NAME instance_url_name=request.instance.url_name %}">
-          <span>{% trans "Plan" %}</span>
-        </a>
-      </li>
-    {% endif %}
-  {% endif %}
+{% if last_effective_instance_user|has_permission:'modeling' %}
+  <li class="{% block activemodeling %}{% endblock %} hidden-xs">
+    <a href="{% url 'model_trees' instance_url_name=request.instance.url_name %}">
+      <span>{% trans "Plan" %}</span>
+    </a>
+  </li>
 {% endif %}
 
 {% if request.instance|feature_enabled:'recent_edits_report' %}
@@ -82,9 +82,9 @@ ga('set', 'page', pathname);
 </li>
 {% endif %}
 
-{% if settings.MANAGEMENT_VIEW_NAME and last_effective_instance_user.admin %}
+{% if last_effective_instance_user.admin %}
 <li class="hidden-xs {% block activemanagement %}{% endblock %}">
-  <a href="{% url settings.MANAGEMENT_VIEW_NAME instance_url_name=request.instance.url_name %}">{% trans "Manage" %}</a>
+  <a href="{% url "management" instance_url_name=request.instance.url_name %}">{% trans "Manage" %}</a>
 </li>
 {% endif %}
 {% endblock instancetopnav %}
@@ -189,8 +189,8 @@ ga('set', 'page', pathname);
     <button id="search-reset" class="btn btn-default btn-sm"
         data-event-category="search" data-event-action="reset">{% trans "Reset" %}</button>
   </div>
-  <a id="perform-search" class="btn btn-primary btn-lg btn-block"
-        data-event-category="search" data-event-action="do-search">{% trans "Search" %}</a>
+  <button id="perform-search" class="btn btn-primary btn-lg btn-block"
+        data-event-category="search" data-event-action="do-search">{% trans "Search" %}</button>
 </div>
 {% endblock searchoptions %}
 
@@ -229,14 +229,6 @@ ga('set', 'page', pathname);
   <p>{{name}}</p>
   <p>{{category}}</p>
 </div>
-</script>
-
-<script id="geocode-results-template" type="text/x-mustache-template">
-<ul class="list-unstyled">
-{{#candidates}}
-<li><a href="javascript:;" data-class="geocode-result" data-x="{{x}}" data-y="{{y}}" data-srid="{{srid}}" data-address"{{address}}">{{address}}</a></li>
-{{/candidates}}
-</ul>
 </script>
 
 <script id="updated_by-template" type="text/x-mustache-template">
